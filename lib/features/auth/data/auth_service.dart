@@ -65,4 +65,43 @@ class AuthService {
       return {'success': false, 'message': 'Lỗi kết nối'};
     }
   }
+
+  Future<Map<String, dynamic>> register({
+    required String fullname,
+    required String email,
+    required String password,
+  }) async {
+    final url = Uri.parse('$baseUrl/auth/register');
+    
+    try {
+      debugPrint('🚀 [REGISTER] ĐANG GỌI: $url');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'fullname': fullname,
+          'email': email,
+          'password': password,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      debugPrint('✅ [REGISTER] PHẢN HỒI: ${response.statusCode}');
+      debugPrint('Nội dung: ${response.body}');
+
+      final data = jsonDecode(response.body);
+      
+      if (response.statusCode == 200 && data['code'] == 1000) {
+        return {'success': true, 'message': 'Đăng ký thành công'};
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Đăng ký thất bại'
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ [REGISTER] LỖI CHI TIẾT: $e');
+      return {'success': false, 'message': 'Lỗi kết nối: $e'};
+    }
+  }
 }

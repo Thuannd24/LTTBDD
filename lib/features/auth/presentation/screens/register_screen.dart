@@ -1,7 +1,96 @@
 import 'package:flutter/material.dart';
+import '../../data/auth_service.dart';
 
-class RegisterScreen extends StatelessWidget {
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _fullnameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _fullnameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  String? _validateForm() {
+    if (_fullnameController.text.isEmpty) {
+      return 'Vui lòng nhập họ và tên';
+    }
+    if (_emailController.text.isEmpty) {
+      return 'Vui lòng nhập email';
+    }
+    if (!_emailController.text.contains('@')) {
+      return 'Email không hợp lệ';
+    }
+    if (_passwordController.text.isEmpty) {
+      return 'Vui lòng nhập mật khẩu';
+    }
+    if (_passwordController.text.length < 6) {
+      return 'Mật khẩu phải có ít nhất 6 ký tự';
+    }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      return 'Mật khẩu không trùng khớp';
+    }
+    return null;
+  }
+
+  void _handleRegister() async {
+    final error = _validateForm();
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    
+    final result = await _authService.register(
+      fullname: _fullnameController.text,
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (result['success']) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Đăng ký thành công'),
+          content: const Text('Bạn có thể đăng nhập ngay bây giờ'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Đóng dialog
+                Navigator.pop(context); // Quay lại LoginScreen
+              },
+              child: const Text('OK'),
+            )
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'])),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,25 +151,52 @@ class RegisterScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  _buildTextField(hint: 'Họ và tên', icon: Icons.person_outline),
+                  _buildTextField(
+                    controller: _fullnameController,
+                    hint: 'Họ và tên',
+                    icon: Icons.person_outline,
+                  ),
                   const SizedBox(height: 20),
-                  _buildTextField(hint: 'Email', icon: Icons.email_outlined),
+                  _buildTextField(
+                    controller: _emailController,
+                    hint: 'Email',
+                    icon: Icons.email_outlined,
+                  ),
                   const SizedBox(height: 20),
-                  _buildTextField(hint: 'Mật khẩu', icon: Icons.lock_outline, isPassword: true),
+                  _buildTextField(
+                    controller: _passwordController,
+                    hint: 'Mật khẩu',
+                    icon: Icons.lock_outline,
+                    isPassword: true,
+                  ),
                   const SizedBox(height: 20),
-                  _buildTextField(hint: 'Xác nhận mật khẩu', icon: Icons.lock_reset, isPassword: true),
+                  _buildTextField(
+                    controller: _confirmPasswordController,
+                    hint: 'Xác nhận mật khẩu',
+                    icon: Icons.lock_reset,
+                    isPassword: true,
+                  ),
                   const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _isLoading ? null : _handleRegister,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
-                      child: const Text('ĐĂNG KÝ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.black,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text('ĐĂNG KÝ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -109,8 +225,14 @@ class RegisterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField({required String hint, required IconData icon, bool isPassword = false}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
