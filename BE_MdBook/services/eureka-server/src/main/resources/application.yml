@@ -1,0 +1,18 @@
+server:
+  port: 8761
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+  server:
+    wait-time-in-ms-when-sync-empty: 0
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.netflix.eureka: ${LOG_LEVEL_EUREKA_SERVER:DEBUG}
+    org.springframework.cloud.netflix.eureka: ${LOG_LEVEL_EUREKA_CLIENT:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n"

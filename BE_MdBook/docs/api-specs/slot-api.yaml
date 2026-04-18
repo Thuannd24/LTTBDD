@@ -1,0 +1,132 @@
+openapi: 3.0.0
+info:
+  title: MedBook Slot Service API
+  version: 1.0.0
+  description: API specifications for managing doctor slots and availability in the MedBook system.
+servers:
+  - url: http://localhost:8080/api/v1/slot
+    description: API Gateway URL
+paths:
+  /health:
+    get:
+      summary: Health Check
+      responses:
+        '200':
+          description: Returns service health status
+          content:
+            application/json:
+              example:
+                status: "ok"
+  /available:
+    get:
+      summary: Get available slots based on query parameters
+      parameters:
+        - in: query
+          name: doctorId
+          schema:
+            type: integer
+          required: true
+          description: ID of the doctor
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          required: true
+          description: Date to check for availability (YYYY-MM-DD)
+      responses:
+        '200':
+          description: List of available slots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: object
+                    # Simplified placeholder for the actual response structure
+  /recurring:
+    post:
+      summary: Create recurring slot configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              # Add specific structure mapped to CreateRecurringSlotRequest
+      responses:
+        '201':
+          description: Recurring slot created successfully
+  /recurring/doctor/{doctorId}:
+    get:
+      summary: Get recurring slot configurations by doctor
+      parameters:
+        - in: path
+          name: doctorId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of recurring configurations for the doctor
+  /{slotId}/book:
+    post:
+      summary: Book a specific slot
+      parameters:
+        - in: path
+          name: slotId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Slot booked successfully
+  /{slotId}/release:
+    post:
+      summary: Release a booked slot
+      parameters:
+        - in: path
+          name: slotId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Slot released successfully
+  /{slotId}/block:
+    post:
+      summary: Block a slot (Admin/Doctor)
+      parameters:
+        - in: path
+          name: slotId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Slot blocked successfully
+  /{slotId}/history:
+    get:
+      summary: Get history of a slot
+      parameters:
+        - in: path
+          name: slotId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: History retrieved successfully

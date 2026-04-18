@@ -1,0 +1,278 @@
+services:
+  # ─── Infrastructure ──────────────────────────────
+  eureka-server:
+    build:
+      context: .
+      dockerfile: services/eureka-server/Dockerfile
+    ports:
+      - "8761:8761"
+    networks:
+      - app-network
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      - eureka-server
+      - redis
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:-http://eureka-server:8761/eureka/}
+      - SPRING_DATA_REDIS_HOST=${SPRING_DATA_REDIS_HOST:-redis}
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:7.0.11
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${DB_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-password}
+    networks:
+      - app-network
+
+  # ─── Business Services ───────────────────────────
+  identity-service:
+    build:
+      context: .
+      dockerfile: services/identity-service/Dockerfile
+    ports:
+      - "${IDENTITY_SERVICE_PORT:-5001}:5001"
+    depends_on:
+      - eureka-server
+      - keycloak
+    environment:
+      - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL:-http://keycloak:8080}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-clinic-realm}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-admin-cli}
+      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET:-enter_keycloak_secret}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
+      - APP_SERVICES_PROFILE=${APP_SERVICES_PROFILE:-http://profile-service:5010/profile}
+      - APP_FRONTEND_URL=${APP_FRONTEND_URL:-http://frontend}
+      - APP_ADMIN_USERNAME=${APP_ADMIN_USERNAME:-admin}
+      - APP_ADMIN_PASSWORD=${APP_ADMIN_PASSWORD:-123456}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
+    networks:
+      - app-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.0
+    command: start-dev --import-realm
+    ports:
+      - "8181:8080"
+    volumes:
+      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://db-identity:5432/identity_db
+      - KC_DB_USERNAME=${DB_USER:-admin}
+      - KC_DB_PASSWORD=${DB_PASSWORD:-password}
+      - KC_HOSTNAME=${KC_HOSTNAME:-localhost}
+      - KC_HOSTNAME_STRICT=false
+    depends_on:
+      - db-identity
+    networks:
+      - app-network
+
+  chat-service:
+    build: ./services/chat-service
+    ports:
+      - "${CHAT_SERVICE_PORT:-5006}:${CHAT_SERVICE_PORT:-5006}"
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - keycloak
+    environment:
+      - HOST=${CHAT_SERVICE_HOST:-0.0.0.0}
+      - PORT=${CHAT_SERVICE_PORT:-5006}
+      - MONGO_URL=${MONGO_URL:-mongodb://${DB_USER:-admin}:${MONGODB_PASSWORD:-password}@mongodb:27017/chat_db?authSource=admin}
+      - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER:-http://keycloak:8080/realms/clinic-realm}
+      - PROFILE_SERVICE_URL=${PROFILE_SERVICE_URL:-http://profile-service:5010}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - NOTIFICATION_QUEUE=${NOTIFICATION_QUEUE:-notification-delivery}
+      - SOCKET_PATH=${SOCKET_PATH:-/chat/socket.io}
+    networks:
+      - app-network
+
+  # Placeholder services (from starter)
+  doctor-service:
+    build:
+      context: .
+      dockerfile: services/doctor-service/Dockerfile
+    ports:
+      - "${DOCTOR_SERVICE_PORT:-5002}:5002"
+      - "${DOCTOR_GRPC_PORT:-50051}:${DOCTOR_GRPC_PORT:-50051}"
+    depends_on:
+      - eureka-server
+      - db-doctor
+      - rabbitmq
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db-doctor:5432/doctor_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
+      - SPRING_RABBIT_HOST=${SPRING_RABBIT_HOST:-rabbitmq}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
+      - DOCTOR_GRPC_PORT=${DOCTOR_GRPC_PORT:-50051}
+      - EUREKA_INSTANCE_METADATA_MAP_GRPC_PORT=${DOCTOR_GRPC_PORT:-50051}
+      - DOCTOR_MESSAGING_LISTENERS_AUTO_STARTUP=${DOCTOR_MESSAGING_LISTENERS_AUTO_STARTUP:-true}
+    networks:
+      - app-network
+
+  appointment-service:
+    build:
+      context: .
+      dockerfile: services/appointment-service/Dockerfile
+    ports:
+      - "${APPOINTMENT_SERVICE_PORT:-5003}:5003"
+    depends_on:
+      - eureka-server
+      - db-appointment
+      - rabbitmq
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db-appointment:5432/appointment_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
+      - SPRING_RABBIT_HOST=${SPRING_RABBIT_HOST:-rabbitmq}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
+      - DOCTOR_SERVICE_ID=${DOCTOR_SERVICE_ID:-doctor-service}
+      - SLOT_SERVICE_ID=${SLOT_SERVICE_ID:-slot-service}
+      - GRPC_METADATA_PORT_KEY=${GRPC_METADATA_PORT_KEY:-grpc.port}
+      - DOCTOR_DEFAULT_GRPC_PORT=${DOCTOR_DEFAULT_GRPC_PORT:-50051}
+      - SLOT_DEFAULT_GRPC_PORT=${SLOT_DEFAULT_GRPC_PORT:-50052}
+      - GRPC_CALL_TIMEOUT_SECONDS=${GRPC_CALL_TIMEOUT_SECONDS:-5}
+      - APPOINTMENT_SAGA_OUTBOX_PUBLISH_INTERVAL_MS=${APPOINTMENT_SAGA_OUTBOX_PUBLISH_INTERVAL_MS:-1000}
+      - APPOINTMENT_SAGA_REPLY_LISTENER_AUTO_STARTUP=${APPOINTMENT_SAGA_REPLY_LISTENER_AUTO_STARTUP:-true}
+    networks:
+      - app-network
+
+  profile-service:
+    build:
+      context: .
+      dockerfile: services/profile-service/Dockerfile
+    ports:
+      - "${PROFILE_SERVICE_PORT:-5010}:5010"
+    depends_on:
+      - eureka-server
+      - db-profile
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db-profile:5432/profile_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+    networks:
+      - app-network
+
+  slot-service:
+    build:
+      context: .
+      dockerfile: services/slot-service/Dockerfile
+    ports:
+      - "${SLOT_SERVICE_PORT:-5011}:5011"
+      - "${SLOT_GRPC_PORT:-50052}:${SLOT_GRPC_PORT:-50052}"
+    depends_on:
+      - eureka-server
+      - db-slot
+      - redis
+      - rabbitmq
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db-slot:5432/slot_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
+      - SPRING_DATA_REDIS_HOST=${SPRING_DATA_REDIS_HOST:-redis}
+      - SPRING_DATA_REDIS_PORT=${SPRING_DATA_REDIS_PORT:-6379}
+      - SPRING_RABBIT_HOST=${SPRING_RABBIT_HOST:-rabbitmq}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
+      - SLOT_GRPC_PORT=${SLOT_GRPC_PORT:-50052}
+      - EUREKA_INSTANCE_METADATA_MAP_GRPC_PORT=${SLOT_GRPC_PORT:-50052}
+      - SLOT_MESSAGING_LISTENERS_AUTO_STARTUP=${SLOT_MESSAGING_LISTENERS_AUTO_STARTUP:-true}
+    networks:
+      - app-network
+
+  # ─── Databases ───────────────────────────────────
+  db-identity:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=identity_db
+      - POSTGRES_USER=${DB_USER:-admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    networks:
+      - app-network
+
+  db-doctor:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=doctor_db
+      - POSTGRES_USER=${DB_USER:-admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    networks:
+      - app-network
+
+  db-appointment:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=appointment_db
+      - POSTGRES_USER=${DB_USER:-admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    networks:
+      - app-network
+
+  db-profile:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=profile_db
+      - POSTGRES_USER=${DB_USER:-admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    networks:
+      - app-network
+
+  db-slot:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=slot_db
+      - POSTGRES_USER=${DB_USER:-admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    networks:
+      - app-network
+
+  # ─── Frontend ───────────────────────────
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - gateway
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

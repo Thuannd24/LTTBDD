@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: doctor-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db-doctor:5432/doctor_db}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  rabbitmq:
+    host: ${SPRING_RABBIT_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka}
+  instance:
+    prefer-ip-address: true
+    metadata-map:
+      grpc.port: ${DOCTOR_GRPC_PORT:50051}
+
+server:
+  port: 5002
+  tomcat:
+    accesslog:
+      enabled: true
+      pattern: "%h %l %u %t \"%r\" %s %b %D"
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.medbook: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:DEBUG}
+    org.springframework.amqp: ${LOG_LEVEL_AMQP:DEBUG}
+    org.springframework.cloud.netflix.eureka: ${LOG_LEVEL_EUREKA:DEBUG}
+    net.devh.boot.grpc: ${LOG_LEVEL_GRPC_BOOT:DEBUG}
+    io.grpc: ${LOG_LEVEL_GRPC:DEBUG}
+    org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:DEBUG}
+    org.hibernate.orm.jdbc.bind: ${LOG_LEVEL_HIBERNATE_BIND:TRACE}
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n"
+
+grpc:
+  server:
+    port: ${DOCTOR_GRPC_PORT:50051}
+
+doctor:
+  messaging:
+    listeners:
+      auto-startup: ${DOCTOR_MESSAGING_LISTENERS_AUTO_STARTUP:true}

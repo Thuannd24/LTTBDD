@@ -1,0 +1,188 @@
+server:
+  port: 8080
+  netty:
+    accesslog:
+      enabled: true
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+      routes:
+        - id: identity-service
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/api/v1/identity/**
+          filters:
+            - RewritePath=/api/v1/identity/(?<segment>.*), /${segment}
+            - name: CircuitBreaker
+              args:
+                name: identity-cb
+                fallbackUri: forward:/fallback/identity
+
+        - id: profile-service
+          uri: lb://PROFILE-SERVICE
+          predicates:
+            - Path=/api/v1/profile/**
+          filters:
+            - RewritePath=/api/v1/profile/(?<segment>.*), /${segment}
+            - name: CircuitBreaker
+              args:
+                name: profile-cb
+                fallbackUri: forward:/fallback/profile
+
+        - id: doctor-service
+          uri: lb://DOCTOR-SERVICE
+          predicates:
+            - Path=/api/v1/doctor/**
+          filters:
+            - RewritePath=/api/v1/doctor/(?<segment>.*), /${segment}
+            - name: CircuitBreaker
+              args:
+                name: doctor-cb
+                fallbackUri: forward:/fallback/doctor
+
+        - id: specialty-api
+          uri: lb://DOCTOR-SERVICE
+          predicates:
+            - Path=/api/v1/specialty/**
+          filters:
+            - RewritePath=/api/v1/specialty/(?<segment>.*), /${segment}
+            - name: CircuitBreaker
+              args:
+                name: doctor-cb
+                fallbackUri: forward:/fallback/doctor
+
+        - id: appointment-service
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/api/v1/appointment/**
+          filters:
+            - RewritePath=/api/v1/appointment/(?<segment>.*), /${segment}
+            - name: CircuitBreaker
+              args:
+                name: appointment-cb
+                fallbackUri: forward:/fallback/appointment
+
+        - id: appointment-service-legacy
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/api/v1/appoint/**
+          filters:
+            - RewritePath=/api/v1/appoint/(?<segment>.*), /${segment}
+            - name: CircuitBreaker
+              args:
+                name: appointment-cb
+                fallbackUri: forward:/fallback/appointment
+
+        - id: chat-service
+          uri: http://chat-service:5006
+          predicates:
+            - Path=/api/v1/chat/**
+          filters:
+            - RewritePath=/api/v1/chat/(?<segment>.*), /chat/${segment}
+            - name: CircuitBreaker
+              args:
+                name: chat-cb
+                fallbackUri: forward:/fallback/chat
+
+        - id: slot-service
+          uri: lb://SLOT-SERVICE
+          predicates:
+            - Path=/api/v1/slot/**
+          filters:
+            - RewritePath=/api/v1/slot/(?<segment>.*), /slot/${segment}
+            - name: CircuitBreaker
+              args:
+                name: slot-cb
+                fallbackUri: forward:/fallback/slot
+
+        - id: auth
+          uri: http://keycloak:8080
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - RewritePath=/api/v1/auth/(?<segment>.*), /realms/clinic-realm/protocol/openid-connect/${segment}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://eureka-server:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+# ================================================
+# Resilience4j — Circuit Breaker Configuration
+# ================================================
+resilience4j:
+  circuitbreaker:
+    configs:
+      # Cấu hình mặc định dùng chung cho tất cả circuit breakers
+      default:
+        # Số % request thất bại để mở circuit (50%)
+        failureRateThreshold: 50
+        # Số % request chậm để mở circuit (80%)
+        slowCallRateThreshold: 80
+        # Ngưỡng thời gian coi là "request chậm" (3 giây)
+        slowCallDurationThreshold: 5000ms
+        # Số request tối thiểu trong sliding window trước khi tính tỷ lệ lỗi
+        minimumNumberOfCalls: 5
+        # Sliding window tính trên số lần gọi
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        # Thời gian circuit ở trạng thái OPEN trước khi chuyển sang HALF-OPEN (10 giây)
+        waitDurationInOpenState: 10s
+        # Số request được phép trong trạng thái HALF-OPEN để kiểm tra khả năng phục hồi
+        permittedNumberOfCallsInHalfOpenState: 3
+        # Tự động chuyển sang HALF-OPEN sau khi hết thời gian chờ
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      identity-cb:
+        baseConfig: default
+      profile-cb:
+        baseConfig: default
+      doctor-cb:
+        baseConfig: default
+      appointment-cb:
+        # Appointment là core business, cần threshold thấp hơn để fail-fast
+        failureRateThreshold: 40
+        minimumNumberOfCalls: 3
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 2
+        slidingWindowSize: 10
+      slot-cb:
+        baseConfig: default
+      chat-cb:
+        # Chat là non-critical, cho phép retry rộng hơn
+        failureRateThreshold: 60
+        waitDurationInOpenState: 5s
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.medbook.gateway: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.cloud.gateway: ${LOG_LEVEL_GATEWAY:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:DEBUG}
+    org.springframework.cloud.netflix.eureka: ${LOG_LEVEL_EUREKA:DEBUG}
+    reactor.netty: ${LOG_LEVEL_REACTOR_NETTY:DEBUG}
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n"

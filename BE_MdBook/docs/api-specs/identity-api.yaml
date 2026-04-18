@@ -1,0 +1,78 @@
+openapi: 3.0.0
+info:
+  title: Identity Service API
+  description: API for managing user identities and registration via Keycloak.
+  version: 1.0.0
+paths:
+  /users/registration:
+    post:
+      tags:
+        - Users
+      summary: Register a new user
+      description: Creates a new user in Keycloak and syncs to profile-service.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreationRequest'
+      responses:
+        '200':
+          description: User created successfully
+        '400':
+          description: Invalid input
+  /users:
+    get:
+      tags:
+        - Users (Admin)
+      summary: Get all users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of users returned
+        '403':
+          description: Forbidden - Admin access required
+  /users/{userId}:
+    delete:
+      tags:
+        - Users (Admin)
+      summary: Delete user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User deleted
+  /users/my-info:
+    get:
+      tags:
+        - Users
+      summary: Get current user info
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User info returned
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserCreationRequest:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+        email: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        dob: { type: string, format: date }
+        city: { type: string }

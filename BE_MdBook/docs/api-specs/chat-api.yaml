@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: Chat Service API
+  description: |
+    API quản lý hội thoại và tin nhắn thời gian thực. 
+    Lưu ý: Luồng tin nhắn chính sử dụng Socket.IO.
+  version: 1.0.0
+
+servers:
+  - url: /api/v1/chat
+    description: Truy cập qua API Gateway
+
+paths:
+  /conversations:
+    get:
+      tags:
+        - Conversations
+      summary: Lấy danh sách các cuộc hội thoại của người dùng hiện tại
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConversationResponse'
+
+  /conversations/{conversationId}/messages:
+    get:
+      tags:
+        - Messages
+      summary: Lấy lịch sử tin nhắn trong một cuộc hội thoại (có phân trang)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Danh sách tin nhắn
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    ConversationResponse:
+      type: object
+      properties:
+        id: { type: string }
+        participants: { type: array, items: { type: string } }
+        lastMessage: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    MessageResponse:
+      type: object
+      properties:
+        id: { type: string }
+        conversationId: { type: string }
+        senderId: { type: string }
+        content: { type: string }
+        status: { type: string, enum: [SENT, DELIVERED, READ] }
+        createdAt: { type: string, format: date-time }
+
+x-web-socket:
+  protocol: Socket.IO
+  path: /api/v1/chat/socket.io
+  events:
+    message:send:
+      description: Gửi tin nhắn mới
+      payload:
+        type: object
+        properties:
+          conversationId: { type: string }
+          content: { type: string }
+          contentType: { type: string, default: TEXT }
+    message:new:
+      description: Nhận tin nhắn mới (Server emit)
+      payload:
+        $ref: '#/components/schemas/MessageResponse'

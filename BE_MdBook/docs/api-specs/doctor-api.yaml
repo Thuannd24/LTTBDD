@@ -1,0 +1,168 @@
+openapi: 3.0.0
+info:
+  title: Doctor Service API
+  description: API quản lý thông tin bác sĩ, chuyên khoa và lịch làm việc chuyên môn.
+  version: 1.0.0
+
+servers:
+  - url: /api/v1/doctor
+    description: Truy cập qua API Gateway
+
+paths:
+  /doctors:
+    get:
+      tags:
+        - Doctors
+      summary: Lấy danh sách bác sĩ
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DoctorResponse'
+    post:
+      tags:
+        - Doctors (Admin)
+      summary: Tạo mới hồ sơ bác sĩ
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorRequest'
+      responses:
+        '200':
+          description: Tạo thành công
+
+  /doctors/{id}:
+    get:
+      tags:
+        - Doctors
+      summary: Xem chi tiết bác sĩ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+    put:
+      tags:
+        - Doctors (Staff/Admin)
+      summary: Cập nhật thông tin bác sĩ
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorRequest'
+      responses:
+        '200':
+          description: Cập nhật thành công
+
+  /doctors/{doctorId}/schedules:
+    get:
+      tags:
+        - Schedules
+      summary: Lấy toàn bộ lịch của một bác sĩ
+      parameters:
+        - name: doctorId
+          in: path
+          required: true
+          schema:
+            type: string
+    post:
+      tags:
+        - Schedules (Admin)
+      summary: Tạo lịch làm việc mới cho bác sĩ
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doctorId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorScheduleCreateRequest'
+      responses:
+        '200':
+          description: Tạo lịch thành công
+
+  /doctor-schedules/{scheduleId}/reserve:
+    post:
+      tags:
+        - Schedules (Internal/System)
+      summary: Giữ chỗ một khung giờ (Saga)
+      parameters:
+        - name: scheduleId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                appointmentId:
+                  type: integer
+      responses:
+        '200':
+          description: Đã giữ chỗ
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    DoctorRequest:
+      type: object
+      properties:
+        userId: { type: string }
+        specialtyIds: { type: array, items: { type: string } }
+        experienceYears: { type: integer }
+        hourlyRate: { type: number }
+        degree: { type: string }
+        position: { type: string }
+        workLocation: { type: string }
+        biography: { type: string }
+        status: { type: string, enum: [PENDING, ACTIVE, INACTIVE] }
+
+    DoctorResponse:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        specialtyIds: { type: array, items: { type: string } }
+        experienceYears: { type: integer }
+        hourlyRate: { type: number }
+        status: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    DoctorScheduleCreateRequest:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        startTime: { type: string, format: time }
+        endTime: { type: string, format: time }
+        facilityId: { type: integer }

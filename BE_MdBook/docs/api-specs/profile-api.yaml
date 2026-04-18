@@ -1,0 +1,379 @@
+openapi: 3.0.3
+info:
+  title: Profile Service API
+  description: API specification for profile-service.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5010/profile
+    description: Profile service local endpoint
+
+paths:
+  /users/me:
+    get:
+      summary: Get current user profile
+      operationId: getMyProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current profile returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserProfileResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+    put:
+      summary: Update current user profile
+      operationId: updateMyProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMyProfileRequest'
+      responses:
+        '200':
+          description: Current profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserProfileResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+
+  /users/{userId}:
+    get:
+      summary: Get user profile by userId
+      operationId: getProfileByUserId
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User profile returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserProfileResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+
+  /internal/users/{userId}:
+    get:
+      summary: Get internal profile by userId
+      description: Internal endpoint used by other services (permitAll in current security config).
+      operationId: getInternalProfile
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Internal profile returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseInternalUserProfileResponse'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+
+  /internal/users:
+    post:
+      summary: Create profile from internal request
+      description: Internal endpoint used for profile sync from identity-service.
+      operationId: createInternalProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInternalProfileRequest'
+      responses:
+        '200':
+          description: Internal profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseInternalUserProfileResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+        '409':
+          description: Profile already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+
+  /internal/users/check/{userId}:
+    get:
+      summary: Check if profile exists by userId
+      operationId: checkProfileExists
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile existence returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseProfileExistenceResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponseError:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 2001
+        message:
+          type: string
+          example: Profile not found
+      required:
+        - code
+
+    ApiResponseUserProfileResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 1000
+        message:
+          type: string
+          nullable: true
+        result:
+          $ref: '#/components/schemas/UserProfileResponse'
+      required:
+        - code
+
+    ApiResponseInternalUserProfileResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 1000
+        message:
+          type: string
+          nullable: true
+        result:
+          $ref: '#/components/schemas/InternalUserProfileResponse'
+      required:
+        - code
+
+    ApiResponseProfileExistenceResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 1000
+        message:
+          type: string
+          nullable: true
+        result:
+          $ref: '#/components/schemas/ProfileExistenceResponse'
+      required:
+        - code
+
+    UpdateMyProfileRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          pattern: '^(\\+?[0-9]{7,15})?$'
+        avatar:
+          type: string
+        gender:
+          type: string
+        dob:
+          type: string
+          format: date
+        address:
+          type: string
+          maxLength: 255
+        city:
+          type: string
+        district:
+          type: string
+        ward:
+          type: string
+        emergencyContactName:
+          type: string
+        emergencyContactPhone:
+          type: string
+          pattern: '^(\\+?[0-9]{7,15})?$'
+        insuranceNumber:
+          type: string
+          maxLength: 50
+
+    CreateInternalProfileRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+      required:
+        - userId
+
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: string
+        avatar:
+          type: string
+        gender:
+          type: string
+        dob:
+          type: string
+          format: date
+        address:
+          type: string
+        city:
+          type: string
+        district:
+          type: string
+        ward:
+          type: string
+        emergencyContactName:
+          type: string
+        emergencyContactPhone:
+          type: string
+        insuranceNumber:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    InternalUserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        avatar:
+          type: string
+
+    ProfileExistenceResponse:
+      type: object
+      properties:
+        exists:
+          type: boolean
+        userId:
+          type: string
+      required:
+        - exists
+        - userId

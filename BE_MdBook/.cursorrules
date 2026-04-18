@@ -1,0 +1,17 @@
+# Cursor Rules for MedBook Project
+# Docs: https://docs.cursor.com/context/rules
+
+## Project
+Dự án Microservices MedBook (Đồ án Đại học).
+Hệ thống sử dụng Docker Multistage Build để build code Java và chạy hệ thống.
+Khởi động nhanh: `make up` hoặc `docker compose up --build`.
+
+## Key Rules (Quy tắc bắt buộc)
+
+- **Docker First**: Toàn bộ Java code build và chạy hoàn toàn bên trong Docker. KHÔNG yêu cầu cài Java/Maven ở máy thật.
+- **Health Checks**: Mọi service PHẢI có endpoint `GET /health` → `{"status": "ok"}`.
+- **Networking**: Giao tiếp nội bộ chỉ được dùng Service Name của Docker (ví dụ: `http://keycloak:8080`), tuyệt đối không dùng `localhost` hay `host.docker.internal`.
+- **Security**: Không hardcode mật khẩu/Secret. Luôn dùng biến môi trường và đồng bộ giữa `.env` và `.env.example`.
+- **API Documentation**: Luôn cập nhật OpenAPI specs trong `docs/api-specs/` khi thay đổi Controller.
+- **Infrastructure**: Services đăng ký qua Eureka Server và cấu hình routing qua API Gateway.
+- **Service Readmes**: Mỗi service mới hoặc refactor đều phải cập nhật file `readme.md` tương ứng.

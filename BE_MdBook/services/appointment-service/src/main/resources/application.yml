@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: appointment-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db-appointment:5432/appointment_db}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  rabbitmq:
+    host: ${SPRING_RABBIT_HOST:rabbitmq}
+    port: 5672
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:${JWT_ISSUER_URI:http://keycloak:8080/realms/clinic-realm}}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka}
+
+server:
+  port: 5003
+  tomcat:
+    accesslog:
+      enabled: true
+      pattern: "%h %l %u %t \"%r\" %s %b %D"
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.medbook: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:DEBUG}
+    org.springframework.amqp: ${LOG_LEVEL_AMQP:DEBUG}
+    org.springframework.cloud.netflix.eureka: ${LOG_LEVEL_EUREKA:DEBUG}
+    net.devh.boot.grpc: ${LOG_LEVEL_GRPC_BOOT:DEBUG}
+    io.grpc: ${LOG_LEVEL_GRPC:DEBUG}
+    org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:DEBUG}
+    org.hibernate.orm.jdbc.bind: ${LOG_LEVEL_HIBERNATE_BIND:TRACE}
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n"
+
+grpc:
+  doctor-service-id: ${DOCTOR_SERVICE_ID:doctor-service}
+  slot-service-id: ${SLOT_SERVICE_ID:slot-service}
+  metadata-grpc-port-key: ${GRPC_METADATA_PORT_KEY:grpc.port}
+  doctor-default-grpc-port: ${DOCTOR_DEFAULT_GRPC_PORT:50051}
+  slot-default-grpc-port: ${SLOT_DEFAULT_GRPC_PORT:50052}
+  call-timeout-seconds: ${GRPC_CALL_TIMEOUT_SECONDS:5}
+
+appointment:
+  saga:
+    outbox:
+      publish-interval-ms: ${APPOINTMENT_SAGA_OUTBOX_PUBLISH_INTERVAL_MS:1000}
+    reply-listener:
+      auto-startup: ${APPOINTMENT_SAGA_REPLY_LISTENER_AUTO_STARTUP:true}

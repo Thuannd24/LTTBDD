@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package com.medbook.grpc.slot;
+
+option java_multiple_files = true;
+option java_package = "com.medbook.grpc.slot";
+option java_outer_classname = "SlotServiceProto";
+
+service SlotService {
+  rpc GetSlotById(GetSlotByIdRequest) returns (SlotResponse);
+  rpc GetRoomById(GetRoomByIdRequest) returns (RoomResponse);
+  rpc GetEquipmentById(GetEquipmentByIdRequest) returns (EquipmentResponse);
+  rpc ReserveSlot(ReserveSlotRequest) returns (SlotResponse);
+  rpc ReleaseSlot(ReleaseSlotRequest) returns (SlotResponse);
+}
+
+message GetSlotByIdRequest {
+  string slot_id = 1;
+}
+
+message SlotResponse {
+  string id = 1;
+  string target_type = 2;
+  string target_id = 3;
+  string date = 4;
+  string start_time = 5;
+  string end_time = 6;
+  bool available = 7;
+}
+
+message GetRoomByIdRequest {
+  string room_id = 1;
+}
+
+message RoomResponse {
+  string id = 1;
+  string name = 2;
+  string category = 3;
+  bool active = 4;
+}
+
+message GetEquipmentByIdRequest {
+  string equipment_id = 1;
+}
+
+message EquipmentResponse {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  bool active = 4;
+}
+
+message ReserveSlotRequest {
+  string slot_id = 1;
+  string appointment_id = 2;
+}
+
+message ReleaseSlotRequest {
+  string slot_id = 1;
+  string appointment_id = 2;
+}

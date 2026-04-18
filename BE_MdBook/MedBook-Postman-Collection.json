@@ -1,0 +1,386 @@
+{
+  "info": {
+    "name": "MedBook APIs - Optimized Collection",
+    "description": "Collection đã được tinh chỉnh: Bổ sung đầy đủ các trường dữ liệu và loại bỏ các API Cập nhật/Xóa để gọn nhẹ hơn.\n\n📌 HƯỚNG DẪN:\n1. Chạy request 'Đăng Ký' & 'Login' trước.\n2. Các biến {{token}}, {{doctorId}}... sẽ tự động được cập nhật sau mỗi request thành công.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "doctorId", "value": "", "type": "string" },
+    { "key": "specialtyId", "value": "", "type": "string" },
+    { "key": "scheduleId", "value": "", "type": "string" },
+    { "key": "appointmentId", "value": "", "type": "string" },
+    { "key": "packageId", "value": "", "type": "string" },
+    { "key": "packageStepId", "value": "", "type": "string" },
+    { "key": "roomId", "value": "", "type": "string" },
+    { "key": "equipmentId", "value": "", "type": "string" },
+    { "key": "slotId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🔐 1. Identity Service",
+      "item": [
+        {
+          "name": "Đăng Ký User (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.result && json.result.id) {",
+                  "  pm.collectionVariables.set('userId', json.result.id);",
+                  "  console.log('✅ userId saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/identity/users/registration",
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"username\": \"johndoe\",\n  \"password\": \"password123\",\n  \"email\": \"john@example.com\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"dob\": \"1990-01-01\",\n  \"city\": \"Hanoi\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login - Lấy Token (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "  pm.collectionVariables.set('token', json.access_token);",
+                  "  console.log('✅ Token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/token",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "johndoe" },
+                { "key": "password", "value": "password123" },
+                { "key": "grant_type", "value": "password" },
+                { "key": "client_id", "value": "admin-cli" },
+                { "key": "client_secret", "value": "JjTiPYv07eVL44pGklrL4sXNZUxIlXYP" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Thông Tin Cá Nhân",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/identity/users/my-info"
+          }
+        },
+        {
+          "name": "Danh Sách Users (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/identity/users"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 2. Profile Service",
+      "item": [
+        {
+          "name": "Xem Hồ Sơ Của Tôi",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/profile/users/me"
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/profile/users/me/avatar",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "Xem Hồ Sơ Theo User ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/profile/users/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🩺 3. Doctor Service",
+      "item": [
+        {
+          "name": "── Specialty ──",
+          "item": [
+            {
+              "name": "Tạo Chuyên Khoa (ADMIN)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": { "exec": ["var json = pm.response.json(); if(json.id) pm.collectionVariables.set('specialtyId', json.id);"] }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/doctor/specialties",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"name\": \"Nội Tổng Hợp\",\n  \"description\": \"Chẩn đoán và điều trị các bệnh nội khoa.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Tất Cả Chuyên Khoa",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/doctor/specialties" }
+            }
+          ]
+        },
+        {
+          "name": "── Doctor ──",
+          "item": [
+            {
+              "name": "Tạo Hồ Sơ Bác Sĩ (ADMIN)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": { "exec": ["var json = pm.response.json(); if(json.id) pm.collectionVariables.set('doctorId', json.id);"] }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/doctor/doctors",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"specialtyIds\": [\"{{specialtyId}}\"],\n  \"experienceYears\": 10,\n  \"hourlyRate\": 500000.0,\n  \"degree\": \"Thạc sĩ\",\n  \"position\": \"Trưởng Khoa\",\n  \"workLocation\": \"Cơ sở 1\",\n  \"biography\": \"Kinh nghiệm 10 năm\",\n  \"services\": \"Khám nội\",\n  \"qualification\": \"Chứng chỉ 123\",\n  \"status\": \"ACTIVE\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Danh Sách Bác Sĩ",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/doctor/doctors" }
+            }
+          ]
+        },
+        {
+          "name": "── Schedule ──",
+          "item": [
+            {
+              "name": "Tạo Lịch Bác Sĩ (ADMIN)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/doctor/doctors/{{doctorId}}/schedules",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"facilityId\": 1,\n  \"startTime\": \"2026-05-05T08:00:00\",\n  \"endTime\": \"2026-05-05T12:00:00\",\n  \"notes\": \"Khám sáng\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Lịch Rảnh Bác Sĩ",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/api/v1/doctor/doctors/{{doctorId}}/schedules/available?date=2026-05-05&facilityId=1"
+              }
+            },
+            {
+              "name": "Giữ Chỗ Lịch (Reserve)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/doctor/doctor-schedules/{{scheduleId}}/reserve",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\"appointmentId\": \"{{appointmentId}}\"}"
+                }
+              }
+            },
+            {
+              "name": "Giải Phóng Lịch (Release)",
+              "request": { "method": "POST", "url": "{{base_url}}/api/v1/doctor/doctor-schedules/{{scheduleId}}/release" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🏥 4. Slot Service",
+      "item": [
+        {
+          "name": "── Room ──",
+          "item": [
+            {
+              "name": "Tạo Phòng Khám",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/slot/rooms",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"roomCode\": \"R101\",\n  \"roomName\": \"Phòng 101\",\n  \"facilityId\": 1,\n  \"roomCategory\": \"CONSULTATION_ROOM\",\n  \"notes\": \"Tầng 1\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Danh Sách Phòng",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/slot/rooms?facilityId=1" }
+            }
+          ]
+        },
+        {
+          "name": "── Equipment ──",
+          "item": [
+            {
+              "name": "Tạo Thiết Bị",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/slot/equipments",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"equipmentCode\": \"E01\",\n  \"equipmentName\": \"MRI\",\n  \"roomId\": \"{{roomId}}\",\n  \"equipmentType\": \"OTHER\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "── Config & Slots ──",
+          "item": [
+            {
+              "name": "Cấu Hình Slot Tự Động",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/slot/schedule-configs",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"targetType\": \"ROOM\",\n  \"targetId\": \"{{roomId}}\",\n  \"facilityId\": 1,\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"08:00\",\n  \"endTime\": \"17:00\",\n  \"slotDurationMinutes\": 30\n}"
+                }
+              }
+            },
+            {
+              "name": "Tìm Phòng Trống",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/slot/slots/rooms/available?facilityId=1&date=2026-05-05&roomCategory=CONSULTATION_ROOM" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📅 5. Appointment Service",
+      "item": [
+        {
+          "name": "── Appointment ──",
+          "item": [
+            {
+              "name": "Đặt Lịch Khám",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/appointment/appointments",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"packageId\": \"{{packageId}}\",\n  \"packageStepId\": \"{{packageStepId}}\",\n  \"doctorId\": \"{{doctorId}}\",\n  \"doctorScheduleId\": 1,\n  \"roomSlotId\": 1,\n  \"note\": \"Test E2E Booking\",\n  \"facilityId\": \"1\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Chi Tiết Lịch Hẹn",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/appointment/appointments/{{appointmentId}}" }
+            },
+            {
+              "name": "Lịch Hẹn Của Tôi",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/appointment/appointments/my" }
+            },
+            {
+              "name": "Hủy Lịch Hẹn",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/appointment/appointments/{{appointmentId}}/cancel",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\"reason\": \"Đổi lịch\"}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "── Package Admin ──",
+          "item": [
+            {
+              "name": "Tạo Gói Khám (ADMIN)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": { "exec": ["var json = pm.response.json(); var id = json.id || (json.result ? json.result.id : null); if(id) pm.collectionVariables.set('packageId', id);"] }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/appointment/admin/exam-packages",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"code\": \"PKG-GEN-01\",\n  \"name\": \"Gói Khám Tổng Quát\",\n  \"description\": \"Khám toàn diện\",\n  \"estimatedTotalMinutes\": 120,\n  \"status\": \"ACTIVE\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Tạo Bước Gói Khám (ADMIN)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": { "exec": ["var json = pm.response.json(); var id = json.id || (json.result ? json.result.id : null); if(id) pm.collectionVariables.set('packageStepId', id);"] }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/appointment/admin/exam-packages/{{packageId}}/steps",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"stepOrder\": 1,\n  \"stepName\": \"Xét Nghiệm Máu\",\n  \"allowedSpecialtyIds\": [\"{{specialtyId}}\"],\n  \"equipmentRequired\": false,\n  \"estimatedMinutes\": 30,\n  \"note\": \"Cần nhịn ăn sáng\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Danh Sách Gói Khám",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/appointment/exam-packages" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
