@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_strings.dart';
-import '../../../booking/presentation/screens/booking_screen.dart';
-import '../../../appointments/presentation/screens/appointment_list_screen.dart';
-import '../../../auth/presentation/screens/profile_screen.dart';
-import '../../../chat/presentation/screens/chat_list_screen.dart';
-import '../../../booking/presentation/screens/specialty_list_screen.dart';
-import '../../../booking/presentation/screens/specialty_detail_screen.dart';
-import '../../../booking/presentation/screens/doctor_detail_screen.dart';
-import '../../../booking/presentation/screens/doctor_list_screen.dart';
+import '../../../core/constants/app_strings.dart';
+import '../appointment/screens/booking_screen.dart';
+import '../appointment/screens/appointment_list_screen.dart';
+import '../../auth/presentation/screens/profile_screen.dart';
+import '../../chat/presentation/screens/chat_list_screen.dart';
+import '../appointment/screens/specialty_list_screen.dart';
+import '../appointment/screens/specialty_detail_screen.dart';
+import '../appointment/screens/doctor_detail_screen.dart';
+import '../appointment/screens/doctor_list_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class UserHomeScreen extends StatefulWidget {
+  const UserHomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<UserHomeScreen> createState() => _UserHomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _UserHomeScreenState extends State<UserHomeScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [

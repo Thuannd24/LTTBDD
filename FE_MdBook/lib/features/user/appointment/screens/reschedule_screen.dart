@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../booking/presentation/screens/doctor_list_screen.dart';
-import '../../../booking/presentation/screens/specialty_list_screen.dart';
+import 'doctor_list_screen.dart';
+import 'specialty_list_screen.dart';
 
 class RescheduleScreen extends StatefulWidget {
   final Map<String, dynamic> appointment;

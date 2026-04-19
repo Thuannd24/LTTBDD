@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_strings.dart';
+import '../../../../../core/constants/app_strings.dart';
 import 'checkout_screen.dart';
 import 'doctor_list_screen.dart';
 import 'specialty_list_screen.dart';

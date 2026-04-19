@@ -107,11 +107,7 @@ public class UserService {
                     .city(request.getCity())
                     .build();
 
-            try {
-                profileClient.createProfile(profileRequest);
-            } catch (Exception e) {
-                log.warn("Profile service unavailable, skipping profile creation for user {}", request.getUsername(), e);
-            }
+            profileClient.createProfile(profileRequest);
 
             // Fetch final user from Keycloak to have full metadata (CreatedAt, etc)
             UserRepresentation createdUser = usersResource.get(userId).toRepresentation();

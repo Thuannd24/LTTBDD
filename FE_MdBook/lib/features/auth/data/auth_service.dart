@@ -1,42 +1,178 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import '../../../core/api/api_client.dart';
+import '../../../core/models/user_model.dart';
 
 class AuthService {
-  // Giả lập Backend để test giao diện
+  final ApiClient _apiClient = ApiClient();
+  
+  // Login via Keycloak (through Gateway)
   Future<Map<String, dynamic>> login(String username, String password) async {
-    debugPrint('🚀 [AUTH] GIẢ LẬP ĐĂNG NHẬP: $username');
-    
-    await Future.delayed(const Duration(seconds: 2)); // Giả lập độ trễ mạng
+    try {
+      final url = Uri.parse('${ApiClient.baseUrl}/auth/token');
+      
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'grant_type': 'password',
+          'client_id': 'medbook-web',
+          'username': username,
+          'password': password,
+        },
+      );
 
-    // Luôn trả về thành công để test FE
-    return {
-      'success': true, 
-      'token': 'mock_token_123'
-    };
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final accessToken = data['access_token'];
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', accessToken);
+        
+        return {
+          'success': true,
+          'token': accessToken
+        };
+      } else if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Sai tên đăng nhập hoặc mật khẩu. Vui lòng thử lại.'
+        };
+      } else if (response.statusCode == 404) {
+        return {
+          'success': false,
+          'message': 'Tài khoản không tồn tại.'
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Đăng nhập không thành công (Lỗi ${response.statusCode})'
+        };
+      }
+    } catch (e) {
+      debugPrint('🚨 LOGIN ERROR: $e');
+      return {
+        'success': false,
+        'message': 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng.'
+      };
+    }
   }
 
-  Future<Map<String, dynamic>> getMyInfo() async {
-    return {
-      'success': true, 
-      'data': {
-        'username': 'Người dùng Test',
-        'email': 'test@example.com'
+  // Get current user info including roles
+  Future<UserProfile?> getMyInfo() async {
+    try {
+      final response = await _apiClient.get('/identity/users/my-info');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['result'] != null) {
+          return UserProfile.fromJson(data['result']);
+        }
       }
-    };
+      return null;
+    } catch (e) {
+      debugPrint('Error getting user info: $e');
+      return null;
+    }
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
   }
 
   Future<Map<String, dynamic>> register({
-    required String fullname,
+    required String username,
     required String email,
     required String password,
+    String? firstName,
+    String? lastName,
   }) async {
-    debugPrint('🚀 [REGISTER] GIẢ LẬP ĐĂNG KÝ: $email');
-    
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final response = await _apiClient.post('/identity/users/registration', {
+        'username': username,
+        'email': email,
+        'password': password,
+        'firstName': firstName,
+        'lastName': lastName,
+      });
 
-    return {
-      'success': true, 
-      'message': 'Đăng ký thành công (Giả lập)'
-    };
+      final data = jsonDecode(response.body);
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Đăng ký thành công'
+        };
+      } else {
+        // Xử lý các mã lỗi từ ErrorCode.java của Backend
+        String errorMsg = _mapErrorCode(data['code']);
+        return {
+          'success': false,
+          'message': errorMsg
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Lỗi kết nối: Không thể đăng ký lúc này.'
+      };
+    }
+  }
+
+  String _mapErrorCode(int? code) {
+    switch (code) {
+      case 1001: return 'Tên đăng nhập hoặc Email đã được sử dụng.';
+      case 1002: return 'Người dùng không tồn tại.';
+      case 1008: return 'Định dạng email không hợp lệ.';
+      case 1009: return 'Mật khẩu phải có ít nhất 6 ký tự.';
+      case 1010: return 'Tên đăng nhập phải có ít nhất 4 ký tự.';
+      case 1006: return 'Bạn phải đủ 10 tuổi trở lên để đăng ký.';
+      default: return 'Giao dịch thất bại. Vui lòng thử lại sau.';
+    }
+  }
+
+  Future<Map<String, dynamic>> adminCreateUser({
+    required String username,
+    required String email,
+    required String password,
+    String? firstName,
+    String? lastName,
+    List<String>? roles,
+  }) async {
+    try {
+      final response = await _apiClient.post('/identity/users', {
+        'username': username,
+        'email': email,
+        'password': password,
+        'firstName': firstName,
+        'lastName': lastName,
+        'roles': roles,
+      });
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Tạo tài khoản thành công'
+        };
+      } else {
+        String errorMsg = _mapErrorCode(data['code']);
+        return {
+          'success': false,
+          'message': errorMsg
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Lỗi kết nối: Không thể tạo tài khoản bác sĩ.'
+      };
+    }
   }
 }
+

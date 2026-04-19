@@ -163,6 +163,19 @@ resilience4j:
         # Appointment là core business, cần threshold thấp hơn để fail-fast
         failureRateThreshold: 40
         minimumNumberOfCalls: 3
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+    instances:
+      identity-cb:
+        baseConfig: default
+      profile-cb:
+        baseConfig: default
+      doctor-cb:
+        baseConfig: default
+      appointment-cb:
+        baseConfig: default
         waitDurationInOpenState: 15s
         permittedNumberOfCallsInHalfOpenState: 2
         slidingWindowSize: 10

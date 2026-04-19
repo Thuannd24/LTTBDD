@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_strings.dart';
+import '../../../../../core/constants/app_strings.dart';
 import 'specialty_detail_screen.dart';
 
 class SpecialtyListScreen extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../data/auth_service.dart';
-import '../../../home/presentation/screens/home_screen.dart';
+import 'dashboard_wrapper.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -38,10 +38,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (result['success']) {
       if (!mounted) return;
-      // Chuyển sang màn hình chính
+      // Chuyển sang màn hình điều hướng theo role
       Navigator.pushReplacement(
         context, 
-        MaterialPageRoute(builder: (context) => const HomeScreen())
+        MaterialPageRoute(builder: (context) => const DashboardWrapper())
       );
     } else {
       if (!mounted) return;

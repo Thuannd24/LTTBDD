@@ -37,7 +37,7 @@ app:
   frontend:
     url: ${APP_FRONTEND_URL:http://frontend}
   services:
-    profile: ${APP_SERVICES_PROFILE:http://profile-service:5010/profile}
+    profile: ${APP_SERVICES_PROFILE:http://profile-service:5010}
 management:
   endpoints:
     web:

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_strings.dart';
+import '../../../../../core/constants/app_strings.dart';
 import 'doctor_detail_screen.dart';
 
 class DoctorListScreen extends StatefulWidget {

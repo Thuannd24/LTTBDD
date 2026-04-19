@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_strings.dart';
+import '../../../../../core/constants/app_strings.dart';
 import '../../data/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -10,7 +10,9 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController _fullnameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -22,7 +24,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _fullnameController.dispose();
+    _usernameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
@@ -31,9 +35,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   String? _validateForm() {
-    if (_fullnameController.text.isEmpty || 
+    if (_usernameController.text.isEmpty || 
+        _firstNameController.text.isEmpty || 
+        _lastNameController.text.isEmpty || 
         _emailController.text.isEmpty || 
-        _phoneController.text.isEmpty ||
         _passwordController.text.isEmpty) {
       return AppStrings.fillAllFields;
     }
@@ -60,11 +65,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
     
-    // Simulating BE call or using the placeholder service
     final result = await _authService.register(
-      fullname: _fullnameController.text,
+      username: _usernameController.text,
       email: _emailController.text,
       password: _passwordController.text,
+      firstName: _firstNameController.text,
+      lastName: _lastNameController.text,
     );
 
     setState(() => _isLoading = false);
@@ -113,38 +119,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Illustration (Circular like the image)
               Container(
-                height: 180,
-                width: 180,
-                decoration: BoxDecoration(
+                height: 150,
+                width: 150,
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  image: const DecorationImage(
+                  image: DecorationImage(
                     image: NetworkImage('https://img.freepik.com/free-vector/happy-family-concept-illustration_114360-1498.jpg'),
                     fit: BoxFit.cover,
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               
               _buildTextField(
-                controller: _fullnameController,
-                hint: AppStrings.fullNameHint,
-                icon: Icons.person_outline,
+                controller: _usernameController,
+                hint: 'Tên đăng nhập (Username)',
+                icon: Icons.account_circle_outlined,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _lastNameController,
+                      hint: 'Họ',
+                      icon: Icons.person_outline,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _firstNameController,
+                      hint: 'Tên',
+                      icon: Icons.person_outline,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               _buildTextField(
                 controller: _emailController,
                 hint: AppStrings.emailHint,
                 icon: Icons.email_outlined,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildTextField(
                 controller: _phoneController,
                 hint: AppStrings.phoneHint,
                 icon: Icons.phone_android_outlined,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildTextField(
                 controller: _passwordController,
                 hint: AppStrings.loginPasswordHint,
@@ -153,7 +178,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 obscureText: _obscurePassword,
                 onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildTextField(
                 controller: _confirmPasswordController,
                 hint: 'Xác nhận mật khẩu',

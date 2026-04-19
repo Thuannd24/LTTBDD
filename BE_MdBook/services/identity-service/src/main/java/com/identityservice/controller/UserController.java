@@ -32,6 +32,14 @@ public class UserController {
                 .build();
     }
 
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<UserResponse> adminCreateUser(@RequestBody @Valid UserCreationRequest request) {
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.adminCreateUser(request))
+                .build();
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     ApiResponse<List<UserResponse>> getUsers() {

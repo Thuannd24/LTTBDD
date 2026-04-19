@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../main.dart';
-import '../../../appointments/presentation/screens/appointment_list_screen.dart';
+import 'appointment_list_screen.dart';
 
 class BookingSuccessScreen extends StatelessWidget {
   final Map<String, dynamic>? doctorData;

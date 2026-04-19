@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../booking/presentation/screens/booking_screen.dart';
+import 'booking_screen.dart';
 import 'reschedule_screen.dart';
 
 class AppointmentListScreen extends StatefulWidget {
