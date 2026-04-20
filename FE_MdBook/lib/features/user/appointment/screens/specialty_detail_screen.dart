@@ -3,8 +3,9 @@ import 'doctor_list_screen.dart';
 
 class SpecialtyDetailScreen extends StatelessWidget {
   final String specialtyName;
+  final String specialtyId;
 
-  const SpecialtyDetailScreen({super.key, required this.specialtyName});
+  const SpecialtyDetailScreen({super.key, required this.specialtyName, required this.specialtyId});
 
   @override
   Widget build(BuildContext context) {

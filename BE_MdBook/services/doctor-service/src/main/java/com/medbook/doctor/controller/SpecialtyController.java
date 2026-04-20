@@ -1,5 +1,6 @@
 package com.medbook.doctor.controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -12,12 +13,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.medbook.doctor.dto.ApiResponse;
 import com.medbook.doctor.dto.request.SpecialtyRequest;
 import com.medbook.doctor.dto.response.SpecialtyResponse;
 import com.medbook.doctor.service.SpecialtyService;
+import com.medbook.doctor.service.UploadService;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +35,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SpecialtyController {
     SpecialtyService specialtyService;
+    UploadService uploadService;
+
+    @PostMapping("/upload")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<String> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
+        return ApiResponse.<String>builder()
+                .result(uploadService.uploadImage(file, "specialties"))
+                .build();
+    }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")

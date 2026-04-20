@@ -1,11 +1,40 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
+import 'package:tbdd/features/auth/data/auth_service.dart';
+import 'package:tbdd/core/models/user_model.dart';
+import 'package:tbdd/features/user/screens/user_profile_edit_screen.dart';
+import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthService _authService = AuthService();
+  UserProfile? _user;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final user = await _authService.getMyInfo();
+      if (mounted) setState(() { _user = user; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: SingleChildScrollView(
@@ -42,9 +71,9 @@ class ProfileScreen extends StatelessWidget {
         children: [
           Stack(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 50,
-                backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=david'),
+                backgroundImage: NetworkImage(_user?.phone != null ? 'https://i.pravatar.cc/150?u=${_user!.username}' : 'https://i.pravatar.cc/150?u=guest'),
               ),
               Positioned(
                 bottom: 0,
@@ -61,18 +90,18 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Nguyễn Đình Thuân',
-            style: TextStyle(
+          Text(
+            '${_user?.firstName ?? ''} ${_user?.lastName ?? 'Người dùng'}',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'thuan.nd@example.com',
-            style: TextStyle(
+          Text(
+            _user?.email ?? 'Chưa cập nhật email',
+            style: const TextStyle(
               color: Colors.white70,
               fontSize: 14,
             ),
@@ -98,7 +127,15 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildMenuItem(Icons.person_outline, 'Thông tin cá nhân', () {}),
+          _buildMenuItem(Icons.person_outline, 'Thông tin cá nhân', () async {
+            if (_user != null) {
+              final updated = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => UserProfileEditScreen(user: _user!)),
+              );
+              if (updated == true) _loadProfile();
+            }
+          }),
           _buildMenuItem(Icons.security, 'Đổi mật khẩu', () {}),
           _buildMenuItem(Icons.help_outline, 'Hỗ trợ & Liên hệ', () {}),
         ],

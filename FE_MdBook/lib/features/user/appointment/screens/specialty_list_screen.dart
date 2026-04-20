@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/constants/app_strings.dart';
-import 'specialty_detail_screen.dart';
+import 'package:tbdd/features/admin/data/specialty_service.dart';
+import 'package:tbdd/core/models/specialty_model.dart';
+import 'package:tbdd/core/constants/app_strings.dart';
+import 'package:tbdd/features/user/appointment/screens/specialty_detail_screen.dart';
 
 class SpecialtyListScreen extends StatefulWidget {
   final bool isGeneralView;
@@ -11,15 +13,37 @@ class SpecialtyListScreen extends StatefulWidget {
 }
 
 class _SpecialtyListScreenState extends State<SpecialtyListScreen> {
-  final List<Map<String, dynamic>> _specialties = [
-    {'name': 'Tim mạch', 'icon': Icons.favorite, 'count': 12},
-    {'name': 'Nhi khoa', 'icon': Icons.child_care, 'count': 8},
-    {'name': 'Thần kinh', 'icon': Icons.psychology, 'count': 15},
-    {'name': 'Nhãn khoa', 'icon': Icons.visibility, 'count': 6},
-    {'name': 'Da liễu', 'icon': Icons.spa, 'count': 10},
-    {'name': 'Sản phụ khoa', 'icon': Icons.pregnant_woman, 'count': 14},
-    {'name': 'Răng Hàm Mặt', 'icon': Icons.medical_services, 'count': 9},
-  ];
+  final SpecialtyService _specialtyService = SpecialtyService();
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  List<Specialty> _allSpecialties = [];
+  List<Specialty> _filteredSpecialties = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSpecialties();
+  }
+
+  Future<void> _loadSpecialties() async {
+    try {
+      final list = await _specialtyService.fetchAll();
+      setState(() {
+        _allSpecialties = list;
+        _filteredSpecialties = list;
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _filter(String q) {
+    setState(() {
+      _filteredSpecialties = _allSpecialties.where((s) => s.name.toLowerCase().contains(q.toLowerCase())).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +52,8 @@ class _SpecialtyListScreenState extends State<SpecialtyListScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Danh sách chuyên khoa',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
+        foregroundColor: Colors.black,
+        title: const Text('Danh sách chuyên khoa'),
         centerTitle: true,
       ),
       body: Column(
@@ -49,8 +67,10 @@ class _SpecialtyListScreenState extends State<SpecialtyListScreen> {
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const TextField(
-                decoration: InputDecoration(
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: _filter,
+                decoration: const InputDecoration(
                   hintText: AppStrings.searchSpecialtyHint,
                   icon: Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
@@ -58,52 +78,56 @@ class _SpecialtyListScreenState extends State<SpecialtyListScreen> {
               ),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _specialties.length,
-              itemBuilder: (context, index) {
-                final specialty = _specialties[index];
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[100]!),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2F1),
-                        borderRadius: BorderRadius.circular(10),
+          if (_loading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (_filteredSpecialties.isEmpty)
+            const Expanded(child: Center(child: Text('Không tìm thấy chuyên khoa nào')))
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: _filteredSpecialties.length,
+                itemBuilder: (context, index) {
+                  final s = _filteredSpecialties[index];
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[100]!),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF38A3A5).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.medical_services_rounded, color: Color(0xFF38A3A5)),
                       ),
-                      child: Icon(specialty['icon'], color: const Color(0xFF38A3A5)),
+                      title: Text(
+                        s.name, 
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2D3142))
+                      ),
+                      subtitle: const Text('Bác sĩ chuyên khoa'),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                      onTap: () {
+                        if (widget.isGeneralView) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SpecialtyDetailScreen(specialtyName: s.name, specialtyId: s.id),
+                            ),
+                          );
+                        } else {
+                          Navigator.pop(context, s);
+                        }
+                      },
                     ),
-                    title: Text(
-                      specialty['name'], 
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2D3142))
-                    ),
-                    subtitle: Text('${specialty['count']} bác sĩ chuyên khoa'),
-                    trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                    onTap: () {
-                      if (widget.isGeneralView) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SpecialtyDetailScreen(specialtyName: specialty['name']),
-                          ),
-                        );
-                      } else {
-                        // Trả về kết quả cho màn hình đặt lịch
-                        Navigator.pop(context, specialty['name']);
-                      }
-                    },
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );

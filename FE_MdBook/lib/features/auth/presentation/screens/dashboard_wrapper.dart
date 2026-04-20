@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../data/auth_service.dart';
 import '../../../../core/models/user_model.dart';
-import '../../../admin/screens/admin_dashboard.dart';
-import '../../../doctor/screens/doctor_dashboard.dart';
+import '../../../admin/presentation/screens/admin_dashboard.dart';
+import '../../../doctor/presentation/screens/doctor_dashboard.dart';
 import '../../../user/screens/user_home_screen.dart';
 
 class DashboardWrapper extends StatefulWidget {
@@ -24,10 +25,30 @@ class _DashboardWrapperState extends State<DashboardWrapper> {
   }
 
   Future<void> _loadUserInfo() async {
-    final profile = await _authService.getMyInfo();
+    int retryCount = 0;
+    const int maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      final profile = await _authService.getMyInfo();
+      if (profile != null) {
+        if (mounted) {
+          setState(() {
+            _userProfile = profile;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      retryCount++;
+      if (retryCount < maxRetries && mounted) {
+        debugPrint('Retry loading user info ($retryCount/$maxRetries)...');
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+
     if (mounted) {
       setState(() {
-        _userProfile = profile;
         _isLoading = false;
       });
     }
@@ -42,18 +63,17 @@ class _DashboardWrapperState extends State<DashboardWrapper> {
     }
 
     if (_userProfile == null) {
-      // In real app, redirect to login
       return const Scaffold(
-        body: Center(child: Text('Không thể tải thông tin người dùng')),
+        body: Center(child: Text(AppStrings.errorLoadingProfile)),
       );
     }
 
     if (_userProfile!.isAdmin) {
-      return const AdminDashboard();
+      return AdminDashboard(user: _userProfile);
     } else if (_userProfile!.isDoctor) {
-      return const DoctorDashboard();
+      return DoctorDashboard(user: _userProfile);
     } else {
-      return const UserHomeScreen(); // Patient/User dashboard
+      return const UserHomeScreen();
     }
   }
 }

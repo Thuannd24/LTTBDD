@@ -90,4 +90,5 @@ class AppStrings {
   static const String invalidEmail = 'Email không hợp lệ';
   static const String passwordTooShort = 'Mật khẩu phải có ít nhất 6 ký tự';
   static const String passwordsDoNotMatch = 'Mật khẩu không trùng khớp';
+  static const String errorLoadingProfile = 'Không thể tải thông tin người dùng';
 }

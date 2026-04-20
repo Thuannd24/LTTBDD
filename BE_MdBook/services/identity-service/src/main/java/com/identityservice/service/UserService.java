@@ -155,11 +155,13 @@ public class UserService {
 
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
-        String userId = context.getAuthentication().getName(); // This is the 'sub' claim (Keycloak User ID)
+        String userId = context.getAuthentication().getName();
+        log.info("Fetching info for userId: {}", userId);
 
         try {
             // Get from Keycloak by ID directly
             UserRepresentation user = keycloak.realm(realm).users().get(userId).toRepresentation();
+            log.debug("Successfully profile from Keycloak for userId: {}", userId);
 
             UserResponse userResponse = userMapper.toUserResponse(user);
             
@@ -167,10 +169,15 @@ public class UserService {
             List<String> roles = keycloak.realm(realm).users().get(userId).roles().realmLevel().listAll()
                     .stream().map(RoleRepresentation::getName).collect(Collectors.toList());
             userResponse.setRoles(roles);
+            log.debug("Successfully fetched roles for userId: {}: {}", userId, roles);
 
             return userResponse;
         } catch (jakarta.ws.rs.NotFoundException e) {
+            log.error("User not found in Keycloak: {}", userId);
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        } catch (Exception e) {
+            log.error("Error fetching user info from Keycloak for userId {}: {}", userId, e.getMessage());
+            throw new RuntimeException("Error fetching user info: " + e.getMessage());
         }
     }
 }

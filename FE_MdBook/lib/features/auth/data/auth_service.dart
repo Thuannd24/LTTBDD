@@ -65,17 +65,37 @@ class AuthService {
   Future<UserProfile?> getMyInfo() async {
     try {
       final response = await _apiClient.get('/identity/users/my-info');
+      debugPrint('getMyInfo Status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        debugPrint('getMyInfo Body: ${response.body}');
         if (data['result'] != null) {
           return UserProfile.fromJson(data['result']);
         }
+      } else {
+        debugPrint('getMyInfo failed with body: ${response.body}');
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting user info: $e');
+      debugPrint('getMyInfo Exception: $e');
       return null;
+    }
+  }
+
+  // Admin: Get all users
+  Future<List<UserProfile>> getAllUsers() async {
+    try {
+      final response = await _apiClient.get('/identity/users');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final list = (data['result'] ?? []) as List;
+        return list.map((e) => UserProfile.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('getAllUsers Error: $e');
+      return [];
     }
   }
 
@@ -174,5 +194,28 @@ class AuthService {
       };
     }
   }
-}
 
+  Future<Map<String, dynamic>> updateMyInfo(String userId, Map<String, dynamic> payload) async {
+    try {
+      final response = await _apiClient.put('/profile/users/me', payload);
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Cập nhật thành công',
+          'result': data['result']
+        };
+      } else {
+        return {
+          'success': false,
+          'message': _mapErrorCode(data['code'])
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Lỗi kết nối khi cập nhật thông tin.'
+      };
+    }
+  }
+}

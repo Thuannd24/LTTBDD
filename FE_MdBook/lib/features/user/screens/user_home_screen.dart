@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_strings.dart';
-import '../appointment/screens/booking_screen.dart';
-import '../appointment/screens/appointment_list_screen.dart';
-import '../../auth/presentation/screens/profile_screen.dart';
-import '../../chat/presentation/screens/chat_list_screen.dart';
-import '../appointment/screens/specialty_list_screen.dart';
-import '../appointment/screens/specialty_detail_screen.dart';
-import '../appointment/screens/doctor_detail_screen.dart';
-import '../appointment/screens/doctor_list_screen.dart';
+import 'package:tbdd/core/constants/app_strings.dart';
+import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
+import 'package:tbdd/features/user/appointment/screens/appointment_list_screen.dart';
+import 'package:tbdd/features/auth/presentation/screens/profile_screen.dart';
+import 'package:tbdd/features/chat/presentation/screens/chat_list_screen.dart';
+import 'package:tbdd/features/user/appointment/screens/specialty_list_screen.dart';
+import 'package:tbdd/features/user/appointment/screens/specialty_detail_screen.dart';
+import 'package:tbdd/features/user/appointment/screens/doctor_detail_screen.dart';
+import 'package:tbdd/features/user/appointment/screens/doctor_list_screen.dart';
+import 'package:tbdd/features/auth/data/auth_service.dart';
+import 'package:tbdd/features/admin/data/specialty_service.dart';
+import 'package:tbdd/features/doctor/data/doctor_service.dart';
+import 'package:tbdd/core/models/user_model.dart';
+import 'package:tbdd/core/models/specialty_model.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -78,88 +84,129 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   }
 }
 
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
+  State<HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  final SpecialtyService _specialtyService = SpecialtyService();
+  final DoctorService _doctorService = DoctorService();
+  final AuthService _authService = AuthService();
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  List<Specialty> _specialties = [];
+  List<DoctorProfile> _doctors = [];
+  UserProfile? _user;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final results = await Future.wait([
+        _specialtyService.fetchAll(),
+        _doctorService.fetchAll(),
+        _authService.getMyInfo(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _specialties = results[0] as List<Specialty>;
+          _doctors = results[1] as List<DoctorProfile>;
+          _user = results[2] as UserProfile;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading home data: $e');
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _onSearch(String val) {
+     if (val.isEmpty) return;
+     // simple navigation to search results or list
+     Navigator.push(
+       context,
+       MaterialPageRoute(builder: (context) => DoctorListScreen(searchQuery: val)),
+     );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+
     return SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF38A3A5), width: 2),
-                        ),
-                        child: const CircleAvatar(
-                          radius: 22,
-                          backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=david'),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Clinical Sanctuary',
-                            style: TextStyle(
-                              color: Colors.blue[900],
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const Text(
-                            'Hệ thống y tế quốc tế',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF38A3A5)),
-                      onPressed: () {},
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _buildGreeting(),
-            _buildSearchBar(),
-            _buildSpecialties(context),
-            _buildTopDoctors(context),
-            const SizedBox(height: 100),
-          ],
+      child: RefreshIndicator(
+        onRefresh: _loadData,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTopBar(),
+              _buildGreeting(),
+              _buildSearchBar(),
+              _buildSpecialties(context),
+              _buildTopDoctors(context),
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Clinical Sanctuary',
+                style: TextStyle(
+                  color: Color(0xFF0D47A1),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              Text(
+                'Hệ thống y tế quốc tế',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+          Container(
+            decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF38A3A5)),
+              onPressed: () {},
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGreeting() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.0),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Chào David 👋',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
+            'Chào ${_user?.firstName ?? 'bạn'} 👋',
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
           ),
           SizedBox(height: 6),
           Text(
@@ -182,8 +229,10 @@ class HomeContent extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey[200]!),
         ),
-        child: const TextField(
-          decoration: InputDecoration(
+        child: TextField(
+          controller: _searchCtrl,
+          onSubmitted: _onSearch,
+          decoration: const InputDecoration(
             icon: Icon(Icons.search_rounded, color: Color(0xFF38A3A5)),
             hintText: AppStrings.searchHint,
             hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
@@ -195,13 +244,6 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildSpecialties(BuildContext context) {
-    final List<Map<String, dynamic>> specialties = [
-      {'name': 'Tim mạch', 'icon': Icons.favorite_rounded, 'color': const Color(0xFFE0F2F1)},
-      {'name': 'NHI KHOA', 'icon': Icons.child_care_rounded, 'color': const Color(0xFFE8EAF6)},
-      {'name': 'THẦN KINH', 'icon': Icons.psychology_rounded, 'color': const Color(0xFFFFF3E0)},
-      {'name': 'NHÃN KHOA', 'icon': Icons.visibility_rounded, 'color': const Color(0xFFF1F8E9)},
-    ];
-
     return Column(
       children: [
         Padding(
@@ -229,23 +271,24 @@ class HomeContent extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 125,
+          height: 130,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 24, bottom: 5),
-            itemCount: specialties.length,
+            itemCount: _specialties.length,
             itemBuilder: (context, index) {
+              final s = _specialties[index];
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SpecialtyDetailScreen(specialtyName: specialties[index]['name']),
+                      builder: (context) => SpecialtyDetailScreen(specialtyName: s.name, specialtyId: s.id),
                     ),
                   );
                 },
                 child: Container(
-                  width: 105,
+                  width: 110,
                   margin: const EdgeInsets.only(right: 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -259,13 +302,17 @@ class HomeContent extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: specialties[index]['color'], shape: BoxShape.circle),
-                        child: Icon(specialties[index]['icon'], color: const Color(0xFF38A3A5), size: 26),
+                        decoration: BoxDecoration(color: const Color(0xFF38A3A5).withOpacity(0.1), shape: BoxShape.circle),
+                        child: const Icon(Icons.medical_services_rounded, color: Color(0xFF38A3A5), size: 26),
                       ),
                       const SizedBox(height: 12),
-                      Text(
-                        specialties[index]['name'].toUpperCase(),
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF4A4E69)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: Text(
+                          s.name.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF4A4E69), overflow: TextOverflow.ellipsis),
+                        ),
                       ),
                     ],
                   ),
@@ -279,25 +326,6 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildTopDoctors(BuildContext context) {
-    final List<Map<String, dynamic>> doctors = [
-      {
-        'name': 'BS. Julianne Moore',
-        'specialty': 'Tim mạch',
-        'rating': 4.9,
-        'reviews': 120,
-        'image': 'https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg',
-        'price': 500000,
-      },
-      {
-        'name': 'BS. Alan Cooper',
-        'specialty': 'Thần kinh',
-        'rating': 4.8,
-        'reviews': 94,
-        'image': 'https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg',
-        'price': 600000,
-      },
-    ];
-
     return Column(
       children: [
         Padding(
@@ -328,9 +356,9 @@ class HomeContent extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          itemCount: doctors.length,
+          itemCount: _doctors.length > 5 ? 5 : _doctors.length, // Show up to 5
           itemBuilder: (context, index) {
-            final doctor = doctors[index];
+            final doctor = _doctors[index];
             return GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -352,11 +380,14 @@ class HomeContent extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      width: 85, height: 85,
+                      width: 80, height: 80,
                       decoration: BoxDecoration(
                         color: const Color(0xFFE0F2F1),
                         borderRadius: BorderRadius.circular(18),
-                        image: DecorationImage(image: NetworkImage(doctor['image']), fit: BoxFit.cover),
+                        image: const DecorationImage(
+                          image: NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
+                          fit: BoxFit.cover
+                        ),
                       ),
                     ),
                     const SizedBox(width: 18),
@@ -364,29 +395,22 @@ class HomeContent extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.star_rounded, color: Color(0xFFFFB74D), size: 18),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${doctor['rating']} (${doctor['reviews']})',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
                           Text(
-                            doctor['name'],
+                            doctor.degree ?? 'Bác sĩ',
+                            style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            doctor.userId, // Should display name eventually
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF2D3142)),
                           ),
                           Text(
-                            doctor['specialty'],
-                            style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 13, fontWeight: FontWeight.w500),
+                            doctor.position ?? 'Chuyên gia y tế',
+                            style: const TextStyle(color: Colors.grey, fontSize: 13),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Giá khám: ${doctor['price']}đ',
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                            'Kinh nghiệm: ${doctor.experienceYears} năm',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
