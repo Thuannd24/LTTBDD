@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.medbook.doctor.dto.ApiResponse;
 import com.medbook.doctor.dto.request.DoctorScheduleBlockRequest;
 import com.medbook.doctor.dto.request.DoctorScheduleCreateRequest;
+import com.medbook.doctor.dto.request.DoctorScheduleReleaseRequest;
 import com.medbook.doctor.dto.request.DoctorScheduleReserveRequest;
 import com.medbook.doctor.dto.response.DoctorScheduleResponse;
 import com.medbook.doctor.service.DoctorScheduleService;
@@ -96,9 +97,13 @@ public class DoctorScheduleController {
     }
 
     @PostMapping("/doctor-schedules/{scheduleId}/release")
-    public ApiResponse<DoctorScheduleResponse> releaseSchedule(@PathVariable Long scheduleId) {
+    public ApiResponse<DoctorScheduleResponse> releaseSchedule(
+            @PathVariable Long scheduleId,
+            @RequestBody(required = false) DoctorScheduleReleaseRequest request) {
         return ApiResponse.<DoctorScheduleResponse>builder()
-                .result(doctorScheduleService.releaseSchedule(scheduleId))
+                .result(doctorScheduleService.releaseSchedule(
+                        scheduleId,
+                        request != null ? request.getAppointmentId() : null))
                 .build();
     }
 

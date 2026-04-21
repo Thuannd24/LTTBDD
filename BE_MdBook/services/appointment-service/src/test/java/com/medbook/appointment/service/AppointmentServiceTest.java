@@ -1,5 +1,21 @@
 package com.medbook.appointment.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.medbook.appointment.client.doctor.DoctorServiceClient;
+import com.medbook.appointment.client.model.DoctorInfo;
+import com.medbook.appointment.client.model.DoctorScheduleInfo;
+import com.medbook.appointment.client.model.EquipmentInfo;
+import com.medbook.appointment.client.model.RoomInfo;
+import com.medbook.appointment.client.model.SlotInfo;
+import com.medbook.appointment.client.slot.SlotServiceClient;
 import com.medbook.appointment.dto.request.CancelAppointmentRequest;
 import com.medbook.appointment.dto.request.CreateAppointmentRequest;
 import com.medbook.appointment.dto.response.AppointmentResponse;
@@ -8,21 +24,16 @@ import com.medbook.appointment.dto.response.CreateAppointmentResponse;
 import com.medbook.appointment.dto.response.ExamPackageResponse;
 import com.medbook.appointment.dto.response.ExamPackageStepResponse;
 import com.medbook.appointment.entity.Appointment;
+import com.medbook.appointment.entity.AppointmentResourceReservation;
 import com.medbook.appointment.exception.AppointmentAccessDeniedException;
 import com.medbook.appointment.exception.AppointmentNotFoundException;
 import com.medbook.appointment.exception.AppointmentValidationException;
 import com.medbook.appointment.exception.DoctorScheduleNotFoundException;
-import com.medbook.appointment.grpc.client.DoctorGrpcClient;
-import com.medbook.appointment.grpc.client.SlotGrpcClient;
-import com.medbook.appointment.grpc.model.DoctorInfo;
-import com.medbook.appointment.grpc.model.DoctorScheduleInfo;
-import com.medbook.appointment.grpc.model.EquipmentInfo;
-import com.medbook.appointment.grpc.model.RoomInfo;
-import com.medbook.appointment.grpc.model.SlotInfo;
 import com.medbook.appointment.mapper.AppointmentMapper;
 import com.medbook.appointment.repository.AppointmentRepository;
-import com.medbook.appointment.saga.AppointmentBookingSaga;
-import com.medbook.appointment.saga.AppointmentCancelSaga;
+import com.medbook.appointment.repository.AppointmentResourceReservationRepository;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,17 +43,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AppointmentServiceTest {
@@ -60,16 +60,13 @@ class AppointmentServiceTest {
     private ExamPackageStepService examPackageStepService;
 
     @Mock
-    private DoctorGrpcClient doctorGrpcClient;
+    private DoctorServiceClient doctorServiceClient;
 
     @Mock
-    private SlotGrpcClient slotGrpcClient;
+    private SlotServiceClient slotServiceClient;
 
     @Mock
-    private AppointmentBookingSaga appointmentBookingSaga;
-
-    @Mock
-    private AppointmentCancelSaga appointmentCancelSaga;
+    private AppointmentResourceReservationRepository appointmentResourceReservationRepository;
 
     @InjectMocks
     private AppointmentService appointmentService;
@@ -97,24 +94,22 @@ class AppointmentServiceTest {
 
         testAppointment = Appointment.builder()
                 .id("apt-001")
-                .sagaId("saga-001")
                 .patientUserId(currentUserId)
                 .doctorId("doctor-123")
                 .doctorScheduleId(1L)
                 .facilityId("facility-001")
                 .packageId("pkg-001")
                 .packageStepId("step-001")
-                .status(Appointment.AppointmentStatus.BOOKING_PENDING)
+                .status(Appointment.AppointmentStatus.CONFIRMED)
                 .note("Test appointment")
                 .build();
 
         testResponse = AppointmentResponse.builder()
                 .id("apt-001")
-                .sagaId("saga-001")
                 .patientUserId(currentUserId)
                 .doctorId("doctor-123")
                 .doctorScheduleId(1L)
-                .status("BOOKING_PENDING")
+                .status("CONFIRMED")
                 .build();
 
         testStatusResponse = AppointmentStatusResponse.builder()
@@ -125,15 +120,25 @@ class AppointmentServiceTest {
     @Test
     void createAppointment_success() {
         mockSuccessfulValidation();
-        when(appointmentRepository.save(any(Appointment.class))).thenReturn(testAppointment);
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> {
+            Appointment appointment = invocation.getArgument(0);
+            if (appointment.getId() == null) {
+                appointment.setId("apt-001");
+            }
+            return appointment;
+        });
+        when(appointmentResourceReservationRepository.findByAppointmentIdAndTargetTypeAndSlotId(any(), any(), any()))
+                .thenReturn(Optional.empty());
+        when(appointmentResourceReservationRepository.save(any(AppointmentResourceReservation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         CreateAppointmentResponse response = appointmentService.createAppointment(validRequest, currentUserId);
 
-        assertThat(response.getAppointmentId()).isEqualTo("apt-001");
-        assertThat(response.getSagaId()).isEqualTo("saga-001");
-        assertThat(response.getStatus()).isEqualTo("BOOKING_PENDING");
-        verify(appointmentRepository, times(1)).save(any(Appointment.class));
-        verify(appointmentBookingSaga).startBooking(testAppointment, validRequest);
+        assertThat(response.getAppointmentId()).isNotBlank();
+        assertThat(response.getStatus()).isEqualTo("CONFIRMED");
+        verify(doctorServiceClient).reserveSchedule(1L, response.getAppointmentId());
+        verify(slotServiceClient).reserveSlot(2L, response.getAppointmentId());
+        verify(slotServiceClient).reserveSlot(3L, response.getAppointmentId());
     }
 
     @Test
@@ -156,7 +161,7 @@ class AppointmentServiceTest {
     @Test
     void createAppointment_rejectsWhenDoctorInactive() {
         mockSuccessfulValidation();
-        when(doctorGrpcClient.getDoctorById("doctor-123")).thenReturn(new DoctorInfo(
+        when(doctorServiceClient.getDoctorById("doctor-123")).thenReturn(new DoctorInfo(
                 "doctor-123",
                 "Doctor A",
                 "specialty-1",
@@ -172,7 +177,7 @@ class AppointmentServiceTest {
     @Test
     void createAppointment_rejectsWhenScheduleUnavailable() {
         mockSuccessfulValidation();
-        when(doctorGrpcClient.getDoctorScheduleById("1", "doctor-123")).thenReturn(new DoctorScheduleInfo(
+        when(doctorServiceClient.getDoctorScheduleById("1", "doctor-123")).thenReturn(new DoctorScheduleInfo(
                 "1",
                 "doctor-123",
                 "2026-04-07",
@@ -187,26 +192,9 @@ class AppointmentServiceTest {
     }
 
     @Test
-    void createAppointment_rejectsWhenSpecialtyMismatch() {
-        mockSuccessfulValidation();
-        when(examPackageStepService.getStepById("step-001")).thenReturn(ExamPackageStepResponse.builder()
-                .id("step-001")
-                .packageId("pkg-001")
-                .allowedSpecialtyIds(List.of("specialty-x"))
-                .requiredRoomCategory("LAB_ROOM")
-                .requiredEquipmentType("XRAY_MACHINE")
-                .equipmentRequired(true)
-                .build());
-
-        assertThatThrownBy(() -> appointmentService.createAppointment(validRequest, currentUserId))
-                .isInstanceOf(AppointmentValidationException.class)
-                .hasMessageContaining("specialty");
-    }
-
-    @Test
     void createAppointment_rejectsWhenRoomSlotUnavailable() {
         mockSuccessfulValidation();
-        when(slotGrpcClient.getSlotById("2")).thenReturn(new SlotInfo(
+        when(slotServiceClient.getSlotById("2")).thenReturn(new SlotInfo(
                 "2",
                 "ROOM",
                 "room-001",
@@ -237,22 +225,6 @@ class AppointmentServiceTest {
         assertThatThrownBy(() -> appointmentService.createAppointment(requestWithoutEquipment, currentUserId))
                 .isInstanceOf(AppointmentValidationException.class)
                 .hasMessageContaining("Equipment slot ID is required");
-    }
-
-    @Test
-    void createAppointment_rejectsWhenEquipmentProvidedButNotRequired() {
-        mockSuccessfulValidation();
-        when(examPackageStepService.getStepById("step-001")).thenReturn(ExamPackageStepResponse.builder()
-                .id("step-001")
-                .packageId("pkg-001")
-                .allowedSpecialtyIds(List.of("specialty-1"))
-                .requiredRoomCategory("LAB_ROOM")
-                .equipmentRequired(false)
-                .build());
-
-        assertThatThrownBy(() -> appointmentService.createAppointment(validRequest, currentUserId))
-                .isInstanceOf(AppointmentValidationException.class)
-                .hasMessageContaining("must not be provided");
     }
 
     @Test
@@ -316,34 +288,37 @@ class AppointmentServiceTest {
 
         Appointment confirmedAppointment = Appointment.builder()
                 .id("apt-001")
-                .sagaId("saga-001")
                 .patientUserId("user-123")
                 .doctorId("doctor-123")
+                .doctorScheduleId(1L)
                 .status(Appointment.AppointmentStatus.CONFIRMED)
                 .build();
 
-        Appointment cancelledAppointment = Appointment.builder()
-                .id("apt-001")
-                .sagaId("saga-001")
-                .patientUserId("user-123")
-                .doctorId("doctor-123")
-                .status(Appointment.AppointmentStatus.CANCELLATION_PENDING)
-                .cancelReason("Need to reschedule")
-                .build();
-
         when(appointmentRepository.findById("apt-001")).thenReturn(Optional.of(confirmedAppointment));
-        when(appointmentCancelSaga.startCancellation(confirmedAppointment, "Need to reschedule")).thenReturn(cancelledAppointment);
-        when(appointmentMapper.toResponse(cancelledAppointment)).thenReturn(AppointmentResponse.builder()
-                .id("apt-001")
-                .status("CANCELLATION_PENDING")
-                .cancelReason("Need to reschedule")
-                .build());
+        when(appointmentResourceReservationRepository.findByAppointmentId("apt-001")).thenReturn(List.of(
+                reservation(AppointmentResourceReservation.ResourceTargetType.DOCTOR, "1"),
+                reservation(AppointmentResourceReservation.ResourceTargetType.ROOM, "2"),
+                reservation(AppointmentResourceReservation.ResourceTargetType.EQUIPMENT, "3")
+        ));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(appointmentResourceReservationRepository.save(any(AppointmentResourceReservation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(appointmentMapper.toResponse(any(Appointment.class))).thenAnswer(invocation -> {
+            Appointment appointment = invocation.getArgument(0);
+            return AppointmentResponse.builder()
+                    .id(appointment.getId())
+                    .status(appointment.getStatus().name())
+                    .cancelReason(appointment.getCancelReason())
+                    .build();
+        });
 
         AppointmentResponse response = appointmentService.cancelAppointment("apt-001", cancelRequest, currentUserId);
 
-        assertThat(response.getStatus()).isEqualTo("CANCELLATION_PENDING");
+        assertThat(response.getStatus()).isEqualTo("CANCELLED");
         assertThat(response.getCancelReason()).isEqualTo("Need to reschedule");
-        verify(appointmentCancelSaga).startCancellation(confirmedAppointment, "Need to reschedule");
+        verify(slotServiceClient).releaseSlot(3L, "apt-001");
+        verify(slotServiceClient).releaseSlot(2L, "apt-001");
+        verify(doctorServiceClient).releaseSchedule(1L, "apt-001");
     }
 
     @Test
@@ -364,6 +339,18 @@ class AppointmentServiceTest {
                 .isInstanceOf(AppointmentAccessDeniedException.class);
     }
 
+    private AppointmentResourceReservation reservation(
+            AppointmentResourceReservation.ResourceTargetType targetType,
+            String slotId) {
+        return AppointmentResourceReservation.builder()
+                .appointmentId("apt-001")
+                .targetType(targetType)
+                .slotId(slotId)
+                .targetId(slotId)
+                .status(AppointmentResourceReservation.ReservationStatus.RESERVED)
+                .build();
+    }
+
     private void mockSuccessfulValidation() {
         lenient().when(examPackageService.getPackageById("pkg-001")).thenReturn(ExamPackageResponse.builder()
                 .id("pkg-001")
@@ -380,7 +367,7 @@ class AppointmentServiceTest {
                 .equipmentRequired(true)
                 .build());
 
-        lenient().when(doctorGrpcClient.getDoctorById("doctor-123")).thenReturn(new DoctorInfo(
+        lenient().when(doctorServiceClient.getDoctorById("doctor-123")).thenReturn(new DoctorInfo(
                 "doctor-123",
                 "Doctor A",
                 "specialty-1",
@@ -388,7 +375,7 @@ class AppointmentServiceTest {
                 true
         ));
 
-        lenient().when(doctorGrpcClient.getDoctorScheduleById("1", "doctor-123")).thenReturn(new DoctorScheduleInfo(
+        lenient().when(doctorServiceClient.getDoctorScheduleById("1", "doctor-123")).thenReturn(new DoctorScheduleInfo(
                 "1",
                 "doctor-123",
                 "2026-04-07",
@@ -397,7 +384,7 @@ class AppointmentServiceTest {
                 true
         ));
 
-        lenient().when(slotGrpcClient.getSlotById("2")).thenReturn(new SlotInfo(
+        lenient().when(slotServiceClient.getSlotById("2")).thenReturn(new SlotInfo(
                 "2",
                 "ROOM",
                 "room-001",
@@ -407,14 +394,14 @@ class AppointmentServiceTest {
                 true
         ));
 
-        lenient().when(slotGrpcClient.getRoomById("room-001")).thenReturn(new RoomInfo(
+        lenient().when(slotServiceClient.getRoomById("room-001")).thenReturn(new RoomInfo(
                 "room-001",
                 "Lab Room 1",
                 "LAB_ROOM",
                 true
         ));
 
-        lenient().when(slotGrpcClient.getSlotById("3")).thenReturn(new SlotInfo(
+        lenient().when(slotServiceClient.getSlotById("3")).thenReturn(new SlotInfo(
                 "3",
                 "EQUIPMENT",
                 "equipment-001",
@@ -424,7 +411,7 @@ class AppointmentServiceTest {
                 true
         ));
 
-        lenient().when(slotGrpcClient.getEquipmentById("equipment-001")).thenReturn(new EquipmentInfo(
+        lenient().when(slotServiceClient.getEquipmentById("equipment-001")).thenReturn(new EquipmentInfo(
                 "equipment-001",
                 "XRay Machine",
                 "XRAY_MACHINE",

@@ -24,14 +24,6 @@ services:
     networks:
       - app-network
 
-  rabbitmq:
-    image: rabbitmq:3.12-management-alpine
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - app-network
-
   redis:
     image: redis:7-alpine
     ports:
@@ -102,7 +94,6 @@ services:
       - "${CHAT_SERVICE_PORT:-5006}:${CHAT_SERVICE_PORT:-5006}"
     depends_on:
       - mongodb
-      - rabbitmq
       - keycloak
     environment:
       - HOST=${CHAT_SERVICE_HOST:-0.0.0.0}
@@ -110,8 +101,6 @@ services:
       - MONGO_URL=${MONGO_URL:-mongodb://${DB_USER:-admin}:${MONGODB_PASSWORD:-password}@mongodb:27017/chat_db?authSource=admin}
       - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER:-http://keycloak:8080/realms/clinic-realm}
       - PROFILE_SERVICE_URL=${PROFILE_SERVICE_URL:-http://profile-service:5010}
-      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
-      - NOTIFICATION_QUEUE=${NOTIFICATION_QUEUE:-notification-delivery}
       - SOCKET_PATH=${SOCKET_PATH:-/chat/socket.io}
     networks:
       - app-network
@@ -123,21 +112,15 @@ services:
       dockerfile: services/doctor-service/Dockerfile
     ports:
       - "${DOCTOR_SERVICE_PORT:-5002}:5002"
-      - "${DOCTOR_GRPC_PORT:-50051}:${DOCTOR_GRPC_PORT:-50051}"
     depends_on:
       - eureka-server
       - db-doctor
-      - rabbitmq
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db-doctor:5432/doctor_db
       - SPRING_DATASOURCE_USERNAME=${DB_USER:-admin}
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
-      - SPRING_RABBIT_HOST=${SPRING_RABBIT_HOST:-rabbitmq}
       - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
-      - DOCTOR_GRPC_PORT=${DOCTOR_GRPC_PORT:-50051}
-      - EUREKA_INSTANCE_METADATA_MAP_GRPC_PORT=${DOCTOR_GRPC_PORT:-50051}
-      - DOCTOR_MESSAGING_LISTENERS_AUTO_STARTUP=${DOCTOR_MESSAGING_LISTENERS_AUTO_STARTUP:-true}
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
@@ -153,22 +136,12 @@ services:
     depends_on:
       - eureka-server
       - db-appointment
-      - rabbitmq
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db-appointment:5432/appointment_db
       - SPRING_DATASOURCE_USERNAME=${DB_USER:-admin}
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
-      - SPRING_RABBIT_HOST=${SPRING_RABBIT_HOST:-rabbitmq}
       - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
-      - DOCTOR_SERVICE_ID=${DOCTOR_SERVICE_ID:-doctor-service}
-      - SLOT_SERVICE_ID=${SLOT_SERVICE_ID:-slot-service}
-      - GRPC_METADATA_PORT_KEY=${GRPC_METADATA_PORT_KEY:-grpc.port}
-      - DOCTOR_DEFAULT_GRPC_PORT=${DOCTOR_DEFAULT_GRPC_PORT:-50051}
-      - SLOT_DEFAULT_GRPC_PORT=${SLOT_DEFAULT_GRPC_PORT:-50052}
-      - GRPC_CALL_TIMEOUT_SECONDS=${GRPC_CALL_TIMEOUT_SECONDS:-5}
-      - APPOINTMENT_SAGA_OUTBOX_PUBLISH_INTERVAL_MS=${APPOINTMENT_SAGA_OUTBOX_PUBLISH_INTERVAL_MS:-1000}
-      - APPOINTMENT_SAGA_REPLY_LISTENER_AUTO_STARTUP=${APPOINTMENT_SAGA_REPLY_LISTENER_AUTO_STARTUP:-true}
     networks:
       - app-network
 
@@ -199,24 +172,18 @@ services:
       dockerfile: services/slot-service/Dockerfile
     ports:
       - "${SLOT_SERVICE_PORT:-5011}:5011"
-      - "${SLOT_GRPC_PORT:-50052}:${SLOT_GRPC_PORT:-50052}"
     depends_on:
       - eureka-server
       - db-slot
       - redis
-      - rabbitmq
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db-slot:5432/slot_db
       - SPRING_DATASOURCE_USERNAME=${DB_USER:-admin}
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
       - SPRING_DATA_REDIS_HOST=${SPRING_DATA_REDIS_HOST:-redis}
       - SPRING_DATA_REDIS_PORT=${SPRING_DATA_REDIS_PORT:-6379}
-      - SPRING_RABBIT_HOST=${SPRING_RABBIT_HOST:-rabbitmq}
       - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
-      - SLOT_GRPC_PORT=${SLOT_GRPC_PORT:-50052}
-      - EUREKA_INSTANCE_METADATA_MAP_GRPC_PORT=${SLOT_GRPC_PORT:-50052}
-      - SLOT_MESSAGING_LISTENERS_AUTO_STARTUP=${SLOT_MESSAGING_LISTENERS_AUTO_STARTUP:-true}
     networks:
       - app-network
 

@@ -20,68 +20,52 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Public API endpoints untuk appointment booking
- * Phần 1 của appointment flow (booking + cancellation)
- */
 @RestController
 @RequestMapping("/appointments")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class AppointmentController {
-    
+
     AppointmentService appointmentService;
-    
-    /**
-     * POST /appointments
-     * Tạo appointment booking mới (async)
-     * Response: 202 Accepted + CreateAppointmentResponse
-     */
+
     @PostMapping
     public ResponseEntity<ApiResponse<CreateAppointmentResponse>> createAppointment(
             @RequestBody @Valid CreateAppointmentRequest request) {
-        
+
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         log.info("POST /appointments - Creating appointment for user: {}", userId);
-        
+
         CreateAppointmentResponse response = appointmentService.createAppointment(request, userId);
-        
+
         return ResponseEntity
-                .status(HttpStatus.ACCEPTED)
+                .status(HttpStatus.CREATED)
                 .body(ApiResponse.<CreateAppointmentResponse>builder()
                         .result(response)
                         .build());
     }
-    
-    /**
-     * GET /appointments/{id}
-     * Lấy thông tin appointment đầy đủ
-     * Response: 200 OK + AppointmentResponse
-     */
+
     @GetMapping("/{id}")
     public ApiResponse<AppointmentResponse> getAppointment(@PathVariable String id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = authentication.getName();
         log.info("GET /appointments/{} - User: {}", id, userId);
-        
+
         AppointmentResponse response = appointmentService.getAppointment(id);
-        
-        // Validate user has permission (owner or admin)
         validatePermission(response.getPatientUserId(), authentication);
-        
+
         return ApiResponse.<AppointmentResponse>builder()
                 .result(response)
                 .build();
     }
-    
-    /**
-     * GET /appointments/{id}/status
-     * Lấy status appointment (polling)
-     * Response: 200 OK + AppointmentStatusResponse
-     */
+
     @GetMapping("/{id}/status")
     public ApiResponse<AppointmentStatusResponse> getAppointmentStatus(@PathVariable String id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -90,78 +74,58 @@ public class AppointmentController {
 
         AppointmentResponse appointmentResponse = appointmentService.getAppointment(id);
         validatePermission(appointmentResponse.getPatientUserId(), authentication);
-        
+
         AppointmentStatusResponse response = appointmentService.getAppointmentStatus(id);
-        
+
         return ApiResponse.<AppointmentStatusResponse>builder()
                 .result(response)
                 .build();
     }
-    
-    /**
-     * GET /appointments/my
-     * Lấy danh sách appointments của user hiện tại (paginated)
-     * Response: 200 OK + Page<AppointmentResponse>
-     */
+
     @GetMapping("/my")
     public ApiResponse<Page<AppointmentResponse>> getMyAppointments(Pageable pageable) {
-        
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         log.info("GET /appointments/my - User: {}", userId);
-        
+
         Page<AppointmentResponse> response = appointmentService.getMyAppointments(userId, pageable);
-        
+
         return ApiResponse.<Page<AppointmentResponse>>builder()
                 .result(response)
                 .build();
     }
-    
-    /**
-     * GET /appointments/doctor/{doctorId}
-     * Lấy danh sách appointments của doctor (ADMIN + DOCTOR only)
-     * Response: 200 OK + Page<AppointmentResponse>
-     */
+
     @GetMapping("/doctor/{doctorId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     public ApiResponse<Page<AppointmentResponse>> getDoctorAppointments(
             @PathVariable String doctorId,
             Pageable pageable) {
-        
+
         log.info("GET /appointments/doctor/{} - Fetching doctor appointments", doctorId);
-        
-        Page<AppointmentResponse> response = appointmentService
-                .getDoctorAppointments(doctorId, pageable);
-        
+
+        Page<AppointmentResponse> response = appointmentService.getDoctorAppointments(doctorId, pageable);
+
         return ApiResponse.<Page<AppointmentResponse>>builder()
                 .result(response)
                 .build();
     }
-    
-    /**
-     * POST /appointments/{id}/cancel
-     * Hủy appointment (async)
-     * Response: 202 Accepted + AppointmentResponse (status=CANCELLATION_PENDING)
-     */
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<AppointmentResponse>> cancelAppointment(
             @PathVariable String id,
             @RequestBody @Valid CancelAppointmentRequest request) {
-        
+
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         log.info("POST /appointments/{}/cancel - User: {}", id, userId);
-        
+
         AppointmentResponse response = appointmentService.cancelAppointment(id, request, userId);
-        
+
         return ResponseEntity
-                .status(HttpStatus.ACCEPTED)
+                .status(HttpStatus.OK)
                 .body(ApiResponse.<AppointmentResponse>builder()
                         .result(response)
                         .build());
     }
-    
-    /**
-     * Validate user permission to access appointment
-     */
+
     private void validatePermission(String patientUserId, Authentication authentication) {
         String userId = authentication.getName();
         boolean isOwner = patientUserId.equals(userId);

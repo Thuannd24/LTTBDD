@@ -11,7 +11,6 @@ import com.medbook.appointment.dto.response.CreateAppointmentResponse;
 import com.medbook.appointment.exception.AppointmentAccessDeniedException;
 import com.medbook.appointment.exception.AppointmentNotFoundException;
 import com.medbook.appointment.exception.GlobalExceptionHandler;
-import com.medbook.appointment.grpc.context.JwtContextFilter;
 import com.medbook.appointment.service.AppointmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AppointmentController.class)
-@Import({SecurityConfig.class, GlobalExceptionHandler.class, JwtContextFilter.class})
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 class AppointmentControllerIntegrationTest {
 
     @Autowired
@@ -72,18 +71,16 @@ class AppointmentControllerIntegrationTest {
     void createAppointment_success() throws Exception {
         when(appointmentService.createAppointment(any(), eq("user-123"))).thenReturn(CreateAppointmentResponse.builder()
                 .appointmentId("apt-001")
-                .sagaId("saga-001")
-                .status("BOOKING_PENDING")
+                .status("CONFIRMED")
                 .build());
 
         mockMvc.perform(post("/appointments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest))
                         .with(csrf()))
-                .andExpect(status().isAccepted())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.result.appointmentId").value("apt-001"))
-                .andExpect(jsonPath("$.result.sagaId").value("saga-001"))
-                .andExpect(jsonPath("$.result.status").value("BOOKING_PENDING"));
+                .andExpect(jsonPath("$.result.status").value("CONFIRMED"));
     }
 
     @Test
@@ -117,7 +114,7 @@ class AppointmentControllerIntegrationTest {
                 .id("apt-001")
                 .patientUserId("user-123")
                 .doctorId("doctor-456")
-                .status("BOOKING_PENDING")
+                .status("CONFIRMED")
                 .build());
 
         mockMvc.perform(get("/appointments/apt-001"))
@@ -133,7 +130,7 @@ class AppointmentControllerIntegrationTest {
                 .id("apt-001")
                 .patientUserId("user-123")
                 .doctorId("doctor-456")
-                .status("BOOKING_PENDING")
+                .status("CONFIRMED")
                 .build());
 
         mockMvc.perform(get("/appointments/apt-001"))
@@ -148,7 +145,7 @@ class AppointmentControllerIntegrationTest {
                 .id("apt-001")
                 .patientUserId("user-123")
                 .doctorId("doctor-456")
-                .status("BOOKING_PENDING")
+                .status("CONFIRMED")
                 .build());
 
         mockMvc.perform(get("/appointments/apt-001"))
@@ -222,7 +219,7 @@ class AppointmentControllerIntegrationTest {
 
         when(appointmentService.cancelAppointment(eq("apt-001"), any(), eq("user-123"))).thenReturn(AppointmentResponse.builder()
                 .id("apt-001")
-                .status("CANCELLATION_PENDING")
+                .status("CANCELLED")
                 .cancelReason("Need to reschedule")
                 .build());
 
@@ -230,8 +227,8 @@ class AppointmentControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(cancelRequest))
                         .with(csrf()))
-                .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.result.status").value("CANCELLATION_PENDING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.status").value("CANCELLED"))
                 .andExpect(jsonPath("$.result.cancelReason").value("Need to reschedule"));
     }
 

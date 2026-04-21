@@ -1,6 +1,5 @@
 package com.medbook.appointment.configuration;
 
-import com.medbook.appointment.grpc.context.JwtContextFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -9,7 +8,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -24,11 +22,9 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final CustomJwtDecoder customJwtDecoder;
-    private final JwtContextFilter jwtContextFilter;
 
-    public SecurityConfig(CustomJwtDecoder customJwtDecoder, JwtContextFilter jwtContextFilter) {
+    public SecurityConfig(CustomJwtDecoder customJwtDecoder) {
         this.customJwtDecoder = customJwtDecoder;
-        this.jwtContextFilter = jwtContextFilter;
     }
 
     private final String[] PUBLIC_ENDPOINTS = {
@@ -48,8 +44,6 @@ public class SecurityConfig {
                         .decoder(customJwtDecoder)
                         .jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
-
-        httpSecurity.addFilterBefore(jwtContextFilter, BearerTokenAuthenticationFilter.class);
 
         httpSecurity.csrf(AbstractHttpConfigurer::disable);
 

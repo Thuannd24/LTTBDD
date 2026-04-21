@@ -29,9 +29,6 @@ public class Appointment {
     String id;
     
     @Column(nullable = false, length = 50)
-    String sagaId;
-    
-    @Column(nullable = false, length = 50)
     String patientUserId;
     
     @Column(nullable = false, length = 50)
@@ -74,18 +71,16 @@ public class Appointment {
     LocalDateTime updatedAt;
     
     public enum AppointmentStatus {
-        BOOKING_PENDING,
         CONFIRMED,
         BOOKING_FAILED,
-        CANCELLATION_PENDING,
         CANCELLED,
         CANCELLATION_FAILED
     }
 
     @PrePersist
-    private void ensureSagaId() {
-        if (sagaId == null || sagaId.isBlank()) {
-            sagaId = UUID.randomUUID().toString();
+    private void ensureId() {
+        if (id == null || id.isBlank()) {
+            id = UUID.randomUUID().toString();
         }
     }
 }

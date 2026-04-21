@@ -6,6 +6,7 @@ import com.medbook.slotservice.dto.request.BookSlotRequest;
 import com.medbook.slotservice.dto.request.CreateRecurringSlotRequest;
 import com.medbook.slotservice.dto.request.EquipmentAvailabilityQuery;
 import com.medbook.slotservice.dto.request.RoomAvailabilityQuery;
+import com.medbook.slotservice.dto.request.ReleaseSlotRequest;
 import com.medbook.slotservice.dto.response.AvailableSlotsResponse;
 import com.medbook.slotservice.dto.response.CreateRecurringResult;
 import com.medbook.slotservice.dto.response.RecurringSlotConfigResponse;
@@ -53,6 +54,13 @@ public class SlotController {
                 .build();
     }
 
+    @GetMapping("/slots/{slotId}")
+    public ApiResponse<SlotResponse> getSlot(@PathVariable Long slotId) {
+        return ApiResponse.<SlotResponse>builder()
+                .result(slotService.getSlot(slotId))
+                .build();
+    }
+
     @PostMapping("/schedule-configs")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<CreateRecurringResult> createRecurring(@Valid @RequestBody CreateRecurringSlotRequest request) {
@@ -80,8 +88,12 @@ public class SlotController {
     }
 
     @PostMapping("/slots/{slotId}/release")
-    public ApiResponse<SlotResponse> releaseSlot(@PathVariable Long slotId) {
-        return ApiResponse.<SlotResponse>builder().result(slotService.releaseSlot(slotId)).build();
+    public ApiResponse<SlotResponse> releaseSlot(
+            @PathVariable Long slotId,
+            @RequestBody(required = false) ReleaseSlotRequest request) {
+        return ApiResponse.<SlotResponse>builder()
+                .result(slotService.releaseSlot(slotId, request != null ? request.getAppointmentId() : null))
+                .build();
     }
 
     @PostMapping("/slots/{slotId}/block")
