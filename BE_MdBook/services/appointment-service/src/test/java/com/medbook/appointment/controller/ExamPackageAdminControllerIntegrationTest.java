@@ -7,7 +7,6 @@ import com.medbook.appointment.dto.request.ExamPackageRequest;
 import com.medbook.appointment.dto.response.ExamPackageResponse;
 import com.medbook.appointment.entity.ExamPackage;
 import com.medbook.appointment.exception.GlobalExceptionHandler;
-import com.medbook.appointment.grpc.context.JwtContextFilter;
 import com.medbook.appointment.service.ExamPackageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ExamPackageAdminController.class)
-@Import({SecurityConfig.class, GlobalExceptionHandler.class, JwtContextFilter.class})
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 class ExamPackageAdminControllerIntegrationTest {
 
     @Autowired

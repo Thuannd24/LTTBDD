@@ -71,10 +71,6 @@ module.exports = {
     appointmentRelationshipUrlTemplate:
       process.env.APPOINTMENT_RELATIONSHIP_URL_TEMPLATE || '',
   },
-  rabbitmq: {
-    url: process.env.RABBITMQ_URL || '',
-    queue: process.env.NOTIFICATION_QUEUE || 'notification-delivery',
-  },
   profileCacheTtlMs: Number(process.env.PROFILE_CACHE_TTL_MS || 300000),
   jwksCacheTtlMs: Number(process.env.JWKS_CACHE_TTL_MS || 3600000),
 };

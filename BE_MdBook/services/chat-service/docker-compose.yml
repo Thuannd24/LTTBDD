@@ -13,14 +13,11 @@ services:
       KEYCLOAK_ISSUER: http://keycloak:8181/realms/clinic-realm
       KEYCLOAK_JWKS_URL: http://keycloak:8181/realms/clinic-realm/protocol/openid-connect/certs
       PROFILE_SERVICE_URL: http://profile-service:5010
-      RABBITMQ_URL: amqp://rabbitmq:5672
-      NOTIFICATION_QUEUE: notification-delivery
       SOCKET_PATH: /chat
     ports:
       - "5006:5006"
     depends_on:
       - chat-mongodb
-      - rabbitmq
 
   chat-mongodb:
     image: mongo:7
@@ -29,13 +26,6 @@ services:
       - "27017:27017"
     volumes:
       - chat-mongo-data:/data/db
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: medbook-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
 
   redis:
     image: redis:7

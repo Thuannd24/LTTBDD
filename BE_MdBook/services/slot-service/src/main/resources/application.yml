@@ -27,11 +27,6 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:redis}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-  rabbitmq:
-    host: ${SPRING_RABBIT_HOST:rabbitmq}
-    port: ${SPRING_RABBITMQ_PORT:5672}
-    username: ${SPRING_RABBITMQ_USERNAME:guest}
-    password: ${SPRING_RABBITMQ_PASSWORD:guest}
   security:
     oauth2:
       resourceserver:
@@ -44,17 +39,6 @@ eureka:
       defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka}
   instance:
     prefer-ip-address: true
-    metadata-map:
-      grpc.port: ${SLOT_GRPC_PORT:50052}
-
-grpc:
-  server:
-    port: ${SLOT_GRPC_PORT:50052}
-
-slot:
-  messaging:
-    listeners:
-      auto-startup: ${SLOT_MESSAGING_LISTENERS_AUTO_STARTUP:true}
 
 management:
   endpoints:
@@ -75,10 +59,7 @@ logging:
     com.medbook: ${LOG_LEVEL_APP:DEBUG}
     org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
     org.springframework.security: ${LOG_LEVEL_SECURITY:DEBUG}
-    org.springframework.amqp: ${LOG_LEVEL_AMQP:DEBUG}
     org.springframework.cloud.netflix.eureka: ${LOG_LEVEL_EUREKA:DEBUG}
-    net.devh.boot.grpc: ${LOG_LEVEL_GRPC_BOOT:DEBUG}
-    io.grpc: ${LOG_LEVEL_GRPC:DEBUG}
     org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:DEBUG}
     org.hibernate.orm.jdbc.bind: ${LOG_LEVEL_HIBERNATE_BIND:TRACE}
   pattern:

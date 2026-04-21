@@ -2,11 +2,7 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# 1. Build shared-protos trước
-COPY shared-protos ./shared-protos
-RUN mvn clean install -f shared-protos/pom.xml -DskipTests
-
-# 2. Build appointment-service
+# 1. Build appointment-service
 COPY services/appointment-service ./services/appointment-service
 RUN mvn clean package -f services/appointment-service/pom.xml -DskipTests
 

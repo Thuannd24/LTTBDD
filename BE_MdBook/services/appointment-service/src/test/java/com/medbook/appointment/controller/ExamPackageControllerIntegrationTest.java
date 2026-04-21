@@ -6,7 +6,6 @@ import com.medbook.appointment.configuration.CustomJwtDecoder;
 import com.medbook.appointment.configuration.SecurityConfig;
 import com.medbook.appointment.exception.GlobalExceptionHandler;
 import com.medbook.appointment.entity.ExamPackage;
-import com.medbook.appointment.grpc.context.JwtContextFilter;
 import com.medbook.appointment.service.ExamPackageService;
 import com.medbook.appointment.service.ExamPackageStepService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ExamPackageController.class)
-@Import({SecurityConfig.class, GlobalExceptionHandler.class, JwtContextFilter.class})
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 class ExamPackageControllerIntegrationTest {
 
     @Autowired

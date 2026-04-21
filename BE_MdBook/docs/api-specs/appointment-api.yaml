@@ -1,14 +1,14 @@
 openapi: 3.0.0
 info:
   title: Appointment Service API
-  description: API for appointment booking and exam packages main workflow
   version: 1.0.0
+  description: Synchronous appointment booking API.
 
 paths:
   /appointments:
     post:
-      summary: Create a new appointment (async)
-      description: Create an appointment booking request. Returns 202 Accepted with appointmentId and sagaId. Requires authentication.
+      summary: Create a new appointment
+      description: Creates an appointment and reserves required resources immediately.
       operationId: createAppointment
       security:
         - bearerAuth: []
@@ -19,8 +19,8 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateAppointmentRequest'
       responses:
-        '202':
-          description: Appointment booking initiated (async)
+        '201':
+          description: Appointment created
           content:
             application/json:
               schema:
@@ -28,18 +28,64 @@ paths:
         '400':
           description: Invalid input
         '401':
-          description: Unauthorized (authentication required)
+          description: Unauthorized
         '404':
           description: Package or resource not found
         '409':
-          description: Conflict (business rule violation)
+          description: Business rule violation
         '500':
           description: Server error
 
+  /appointments/{id}:
+    get:
+      summary: Get appointment detail
+      operationId: getAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Appointment detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointment'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Appointment not found
+
+  /appointments/{id}/status:
+    get:
+      summary: Get appointment status
+      operationId: getAppointmentStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Appointment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointmentStatus'
+
   /appointments/{id}/cancel:
     post:
-      summary: Cancel appointment (async)
-      description: Initiate cancellation of an appointment. Returns 202 Accepted with status=CANCELLATION_PENDING. Requires authentication and user must be owner.
+      summary: Cancel an appointment
+      description: Cancels the appointment and releases reserved resources immediately.
       operationId: cancelAppointment
       security:
         - bearerAuth: []
@@ -49,7 +95,6 @@ paths:
           required: true
           schema:
             type: string
-          description: Appointment ID
       requestBody:
         required: true
         content:
@@ -57,8 +102,8 @@ paths:
             schema:
               $ref: '#/components/schemas/CancelAppointmentRequest'
       responses:
-        '202':
-          description: Cancellation initiated (async)
+        '200':
+          description: Appointment cancelled
           content:
             application/json:
               schema:
@@ -68,88 +113,9 @@ paths:
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden (not owner)
+          description: Forbidden
         '404':
           description: Appointment not found
-        '500':
-          description: Server error
-
-  /exam-packages:
-    get:
-      summary: Get all exam packages (with pagination)
-      description: Retrieve a paginated list of all available exam packages. No authentication required.
-      operationId: getAllPackages
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: sort
-          in: query
-          description: 'Sort order (e.g., "name,asc" or "createdAt,desc")'
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successfully retrieved list of packages
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PageExamPackageDTO'
-        '500':
-          description: Server error
-
-  /exam-packages/{id}:
-    get:
-      summary: Get a specific exam package by ID
-      description: Retrieve details of a single exam package. No authentication required.
-      operationId: getPackageById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Package details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamPackageDTO'
-        '404':
-          description: Package not found
-        '500':
-          description: Server error
-
-  /exam-packages/{id}/steps:
-    get:
-      summary: Get all steps of an exam package
-      description: Retrieve the list of steps for a specific exam package. No authentication required.
-      operationId: getPackageSteps
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: List of package steps
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ExamPackageStepDTO'
-        '404':
-          description: Package not found
         '500':
           description: Server error
 
@@ -166,35 +132,20 @@ components:
       properties:
         packageId:
           type: string
-          example: pkg-general-checkup
-          description: ID of exam package
         packageStepId:
           type: string
-          example: step-ultrasound
-          description: ID of package step
         doctorId:
           type: string
-          example: doctor-123
-          description: ID of doctor
         doctorScheduleId:
           type: integer
-          example: 101
-          description: ID of doctor's schedule slot
         roomSlotId:
           type: integer
-          example: 202
-          description: ID of room slot
         equipmentSlotId:
           type: integer
-          description: ID of equipment slot (optional, required if step needs equipment)
         note:
           type: string
-          example: Follow-up visit
-          description: Notes about appointment
         facilityId:
           type: string
-          example: facility-001
-          description: ID of facility/clinic
 
     CancelAppointmentRequest:
       type: object
@@ -203,212 +154,85 @@ components:
       properties:
         reason:
           type: string
-          example: Need to reschedule
-          description: Reason for cancellation
-
-    AppointmentResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          example: apt-001
-          description: Appointment ID
-        sagaId:
-          type: string
-          example: saga-001
-          description: Saga transaction ID
-        patientUserId:
-          type: string
-          example: user-123
-          description: Patient user ID
-        doctorId:
-          type: string
-          example: doctor-123
-          description: Doctor ID
-        doctorScheduleId:
-          type: integer
-          example: 101
-          description: Doctor's schedule slot ID
-        facilityId:
-          type: string
-          example: facility-001
-          description: Facility ID
-        packageId:
-          type: string
-          example: pkg-general-checkup
-          description: Exam package ID
-        packageStepId:
-          type: string
-          example: step-ultrasound
-          description: Package step ID
-        status:
-          type: string
-          enum:
-            - BOOKING_PENDING
-            - CONFIRMED
-            - BOOKING_FAILED
-            - CANCELLATION_PENDING
-            - CANCELLED
-            - CANCELLATION_FAILED
-          example: CONFIRMED
-          description: Appointment status
-        note:
-          type: string
-          example: Follow-up visit
-          description: Notes
-        cancelReason:
-          type: string
-          description: Reason for cancellation (if cancelled)
-        failureCode:
-          type: string
-          description: Error code if booking or cancellation failed
-        failureMessage:
-          type: string
-          description: Error message if booking or cancellation failed
-        createdAt:
-          type: string
-          format: date-time
-          example: '2026-04-07T10:30:00Z'
-        updatedAt:
-          type: string
-          format: date-time
-          example: '2026-04-07T10:35:00Z'
 
     CreateAppointmentResponse:
       type: object
       properties:
         appointmentId:
           type: string
-          example: apt-001
-          description: Generated appointment ID
-        sagaId:
-          type: string
-          example: saga-001
-          description: Generated saga transaction ID
         status:
           type: string
-          example: BOOKING_PENDING
-          description: Initial status is always BOOKING_PENDING
+          example: CONFIRMED
 
-    ApiResponse:
-      type: object
-      properties:
-        result:
-          type: object
-          description: Response result
-
-    ApiResponseCreateAppointmentResponse:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponse'
-        - type: object
-          properties:
-            result:
-              $ref: '#/components/schemas/CreateAppointmentResponse'
-
-    ApiResponseAppointment:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponse'
-        - type: object
-          properties:
-            result:
-              $ref: '#/components/schemas/AppointmentResponse'
-
-    ExamPackageDTO:
+    AppointmentResponse:
       type: object
       properties:
         id:
           type: string
-          description: Unique identifier of the exam package
-        code:
+        patientUserId:
           type: string
-          description: Unique code for the exam package
-        name:
+        doctorId:
           type: string
-          description: Display name of the exam package
-        description:
+        doctorScheduleId:
+          type: integer
+        facilityId:
           type: string
-          description: Detailed description of the exam package
+        packageId:
+          type: string
+        packageStepId:
+          type: string
         status:
           type: string
-          enum: [ACTIVE, INACTIVE]
-          description: Current status of the package
-        estimatedTotalMinutes:
-          type: integer
-          description: Estimated total time for the complete exam in minutes
+          enum:
+            - CONFIRMED
+            - BOOKING_FAILED
+            - CANCELLED
+            - CANCELLATION_FAILED
+        note:
+          type: string
+        cancelReason:
+          type: string
+        failureCode:
+          type: string
+        failureMessage:
+          type: string
         createdAt:
           type: string
           format: date-time
-          description: Timestamp when the package was created
         updatedAt:
           type: string
           format: date-time
-          description: Timestamp when the package was last updated
 
-    ExamPackageStepDTO:
+    AppointmentStatusResponse:
       type: object
       properties:
-        id:
+        status:
           type: string
-          description: Unique identifier of the step
-        packageId:
+        failureCode:
           type: string
-          description: ID of the parent exam package
-        stepOrder:
-          type: integer
-          description: Order of this step within the package
-        stepName:
+        failureMessage:
           type: string
-          description: Name of the step
-        allowedSpecialtyIds:
-          type: array
-          items:
-            type: string
-          description: List of allowed doctor specialty IDs for this step
-        requiredRoomCategory:
-          type: string
-          description: Required room category for this step
-        requiredEquipmentType:
-          type: string
-          description: Type of equipment required for this step
-        equipmentRequired:
-          type: boolean
-          description: Whether equipment is required for this step
-        estimatedMinutes:
-          type: integer
-          description: Estimated time for this step in minutes
-        note:
-          type: string
-          description: Additional notes for this step
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp when the step was created
 
-    PageExamPackageDTO:
+    ApiResponseCreateAppointmentResponse:
       type: object
       properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/ExamPackageDTO'
-        pageable:
-          type: object
-        totalElements:
-          type: integer
-        totalPages:
-          type: integer
-        number:
-          type: integer
-        numberOfElements:
-          type: integer
-        hasNext:
-          type: boolean
-        hasPrevious:
-          type: boolean
+        result:
+          $ref: '#/components/schemas/CreateAppointmentResponse'
+
+    ApiResponseAppointment:
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/AppointmentResponse'
+
+    ApiResponseAppointmentStatus:
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/AppointmentStatusResponse'
 
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT token from Keycloak

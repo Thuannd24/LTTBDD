@@ -1,6 +1,6 @@
 /**
  * Comprehensive E2E Test Script for MedBook Chat Service
- * Tests: Health Check, REST API Auth, Socket.IO Connection, RabbitMQ Queue
+ * Tests: Health Check, REST API Auth, Socket.IO Connection
  */
 const http = require('http');
 const { io } = require('socket.io-client');
@@ -169,47 +169,6 @@ function testMongoConnection() {
   });
 }
 
-// ──── Test 7: RabbitMQ queue existence ────
-function testRabbitMQ() {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'localhost',
-      port: 15672,
-      path: '/api/queues/%2f/notification-delivery',
-      auth: 'guest:guest',
-      timeout: 5000,
-    };
-    const req = http.get(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => (body += chunk));
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          try {
-            const data = JSON.parse(body);
-            log('RabbitMQ Queue', true, `Queue "notification-delivery" exists, messages: ${data.messages || 0}`);
-          } catch (e) {
-            log('RabbitMQ Queue', true, 'Queue exists (parse issue)');
-          }
-        } else if (res.statusCode === 404) {
-          log('RabbitMQ Queue', false, 'Queue "notification-delivery" not found - chat-service may not have connected yet');
-        } else {
-          log('RabbitMQ Queue', false, `Unexpected status: ${res.statusCode}`);
-        }
-        resolve();
-      });
-    });
-    req.on('error', (e) => {
-      log('RabbitMQ Queue', false, `Cannot reach RabbitMQ Management: ${e.message}`);
-      resolve();
-    });
-    req.setTimeout(5000, () => {
-      log('RabbitMQ Queue', false, 'Timeout connecting to RabbitMQ');
-      req.destroy();
-      resolve();
-    });
-  });
-}
-
 // ──── Run all tests ────
 (async () => {
   console.log('\n🏥 MedBook Chat Service — Comprehensive E2E Test Suite\n');
@@ -221,7 +180,6 @@ function testRabbitMQ() {
   await testSocketNoToken();
   await testSocketBadToken();
   await testMongoConnection();
-  await testRabbitMQ();
 
   console.log('\n' + '='.repeat(60));
   const passed = RESULTS.filter(r => r.passed).length;
