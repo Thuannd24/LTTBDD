@@ -116,7 +116,7 @@ class _SpecialtyListScreenState extends State<SpecialtyListScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => SpecialtyDetailScreen(specialtyName: s.name, specialtyId: s.id),
+                              builder: (context) => SpecialtyDetailScreen(specialty: s),
                             ),
                           );
                         } else {

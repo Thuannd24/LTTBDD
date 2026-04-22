@@ -31,6 +31,12 @@ public class UserProfileResponse {
     String emergencyContactName;
     String emergencyContactPhone;
     String insuranceNumber;
+    String bloodType;
+    Double weight;
+    Double height;
+    String medicalHistory;
+    String allergies;
+    String aiSummary;
     Boolean active;
     Instant createdAt;
     Instant updatedAt;

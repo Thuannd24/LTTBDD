@@ -49,6 +49,10 @@ cloudinary:
   api-key: ${CLOUDINARY_API_KEY:your_api_key}
   api-secret: ${CLOUDINARY_API_SECRET:your_api_secret}
 
+app:
+  openai:
+    api-key: ${APP_OPENAI_API_KEY:}
+
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:INFO}

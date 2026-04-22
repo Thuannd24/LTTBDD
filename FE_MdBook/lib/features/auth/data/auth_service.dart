@@ -61,20 +61,21 @@ class AuthService {
     }
   }
 
-  // Get current user info including roles
+  // Get current user info by merging Identity (roles) and Profile (details) service data
   Future<UserProfile?> getMyInfo() async {
     try {
-      final response = await _apiClient.get('/identity/users/my-info');
-      debugPrint('getMyInfo Status: ${response.statusCode}');
+      final identityRes = await _apiClient.get('/identity/users/my-info');
+      final profileRes = await _apiClient.get('/profile/users/me');
       
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        debugPrint('getMyInfo Body: ${response.body}');
-        if (data['result'] != null) {
-          return UserProfile.fromJson(data['result']);
-        }
-      } else {
-        debugPrint('getMyInfo failed with body: ${response.body}');
+      if (identityRes.statusCode == 200 && profileRes.statusCode == 200) {
+        final identityData = jsonDecode(identityRes.body)['result'] as Map<String, dynamic>;
+        final profileData = jsonDecode(profileRes.body)['result'] as Map<String, dynamic>;
+        
+        final merged = { ...identityData, ...profileData };
+        return UserProfile.fromJson(merged);
+      } else if (profileRes.statusCode == 200) {
+        final profileData = jsonDecode(profileRes.body)['result'] as Map<String, dynamic>;
+        return UserProfile.fromJson(profileData);
       }
       return null;
     } catch (e) {
@@ -96,6 +97,22 @@ class AuthService {
     } catch (e) {
       debugPrint('getAllUsers Error: $e');
       return [];
+    }
+  }
+
+  Future<UserProfile?> getUserInfo(String userId) async {
+    try {
+      final response = await _apiClient.get('/profile/users/$userId');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['result'] != null) {
+          return UserProfile.fromJson(data['result']);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('getUserInfo Error: $e');
+      return null;
     }
   }
 
@@ -151,7 +168,14 @@ class AuthService {
       case 1009: return 'Mật khẩu phải có ít nhất 6 ký tự.';
       case 1010: return 'Tên đăng nhập phải có ít nhất 4 ký tự.';
       case 1006: return 'Bạn phải đủ 10 tuổi trở lên để đăng ký.';
-      default: return 'Giao dịch thất bại. Vui lòng thử lại sau.';
+      // Profile Service Codes (2xxx)
+      case 2001: return 'Hồ sơ không tồn tại.';
+      case 2003: return 'Ngày sinh phải ở trong quá khứ.';
+      case 2004: return 'Số điện thoại không hợp lệ (7-15 chữ số).';
+      case 2007: return 'Họ quá dài (tối đa 100 ký tự).';
+      case 2008: return 'Tên quá dài (tối đa 100 ký tự).';
+      case 2009: return 'Địa chỉ quá dài (tối đa 255 ký tự).';
+      default: return 'Giao dịch thất bại. Vui lòng thử lại sau. (Mã lỗi: $code)';
     }
   }
 
@@ -216,6 +240,71 @@ class AuthService {
         'success': false,
         'message': 'Lỗi kết nối khi cập nhật thông tin.'
       };
+    }
+  }
+
+  Future<Map<String, dynamic>> updateUserInfo(String userId, Map<String, dynamic> payload) async {
+    try {
+      final response = await _apiClient.put('/profile/users/$userId', payload);
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Cập nhật thành công',
+          'result': data['result']
+        };
+      } else {
+        return {
+          'success': false,
+          'message': _mapErrorCode(data['code'])
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Lỗi kết nối khi cập nhật hồ sơ bệnh nhân.'
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> updateAvatar(String filePath) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiClient.baseUrl}/profile/users/me/avatar'),
+      );
+      
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': 'Cập nhật ảnh đại diện thành công'};
+      } else {
+        return {'success': false, 'message': 'Lỗi khi upload ảnh: ${response.statusCode}'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> generateAiSummary() async {
+    try {
+      final response = await _apiClient.post('/profile/users/me/ai-summary', {});
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'message': 'Tóm tắt thành công', 'data': data['result']};
+      } else {
+        final data = jsonDecode(response.body);
+        return {'success': false, 'message': data['message'] ?? 'Lỗi tạo tóm tắt'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Lỗi kết nối: $e'};
     }
   }
 }

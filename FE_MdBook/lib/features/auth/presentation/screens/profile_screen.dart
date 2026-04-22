@@ -73,7 +73,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 50,
-                backgroundImage: NetworkImage(_user?.phone != null ? 'https://i.pravatar.cc/150?u=${_user!.username}' : 'https://i.pravatar.cc/150?u=guest'),
+                backgroundImage: _user?.avatar != null && _user!.avatar!.isNotEmpty
+                  ? NetworkImage(_user!.avatar!)
+                  : NetworkImage('https://i.pravatar.cc/150?u=${_user?.username ?? 'guest'}'),
               ),
               Positioned(
                 bottom: 0,
@@ -131,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (_user != null) {
               final updated = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => UserProfileEditScreen(user: _user!)),
+                MaterialPageRoute(builder: (context) => UserProfileEditScreen(user: _user!, isSelf: true)),
               );
               if (updated == true) _loadProfile();
             }

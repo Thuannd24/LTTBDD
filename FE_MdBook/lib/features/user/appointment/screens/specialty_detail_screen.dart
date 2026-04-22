@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:tbdd/core/models/specialty_model.dart';
 import 'doctor_list_screen.dart';
 
 class SpecialtyDetailScreen extends StatelessWidget {
-  final String specialtyName;
-  final String specialtyId;
+  final Specialty specialty;
 
-  const SpecialtyDetailScreen({super.key, required this.specialtyName, required this.specialtyId});
+  const SpecialtyDetailScreen({super.key, required this.specialty});
 
   @override
   Widget build(BuildContext context) {
@@ -21,18 +21,18 @@ class SpecialtyDetailScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            specialtyName,
+            specialty.name,
             style: const TextStyle(color: Color(0xFF2D3142), fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
           bottom: const TabBar(
-            isScrollable: false, // Giữ cố định để không bị lệch
+            isScrollable: false,
             labelColor: Color(0xFF38A3A5),
             unselectedLabelColor: Colors.grey,
             indicatorColor: Color(0xFF38A3A5),
             indicatorWeight: 3,
             indicatorSize: TabBarIndicatorSize.label,
-            labelPadding: EdgeInsets.zero, // Loại bỏ khoảng cách giữa các tab để lấy tối đa không gian
+            labelPadding: EdgeInsets.zero,
             labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13), 
             unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
             tabs: [
@@ -55,7 +55,7 @@ class SpecialtyDetailScreen extends StatelessWidget {
                 _buildOverview(),
                 _buildServices(),
                 _buildTechnology(),
-                DoctorListScreen(specialty: specialtyName, isGeneralView: true), // Thêm isGeneralView: true
+                DoctorListScreen(specialty: specialty.name, specialtyId: specialty.id, isGeneralView: false),
               ],
             ),
           ),
@@ -82,14 +82,14 @@ class SpecialtyDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Trung tâm Tim mạch Vinmec',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A4A7C)),
+          Text(
+            specialty.name,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A4A7C)),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Trung tâm Tim mạch Vinmec hiện là một trong số ít các Trung tâm tim mạch có quy mô lớn và uy tín ở Việt Nam, được trang bị các phương tiện hiện đại, tuân thủ các quy trình thăm khám bệnh chuyên nghiệp, được cấp chứng chỉ quản lý, chăm sóc bệnh mạch vành và suy tim theo tiêu chuẩn của trường môn tim mạch Hoa Kỳ (ACC).',
-            style: TextStyle(fontSize: 15, color: Colors.black87, height: 1.6),
+          Text(
+            specialty.overview ?? 'Đang cập nhật...',
+            style: const TextStyle(fontSize: 15, color: Colors.black87, height: 1.6),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -107,15 +107,7 @@ class SpecialtyDetailScreen extends StatelessWidget {
   }
 
   Widget _buildServices() {
-    final services = [
-      'Điều trị suy tim chuyên sâu',
-      'Điều trị sau nhồi máu cơ tim',
-      'Điều trị tăng huyết áp phức tạp',
-      'Điều trị các rối loạn nhịp dai dẳng (rung nhĩ, ngoại tâm thu)',
-      'Điều trị các bệnh tim mạch khác',
-      'Quản lý bệnh nhân ngoại trú: Các bệnh nhân có tiền sử tăng huyết áp, bệnh mạch vành, nhồi máu cơ tim.',
-      'Điều trị và quản lý các bệnh lý mạch máu: Bệnh động mạch chi trên - chi dưới, mạch cảnh, bệnh lý suy tĩnh mạch chi dưới, huyết khối tĩnh mạch, bệnh lý mạch tạng.',
-    ];
+    final services = (specialty.services ?? '').split('\n').where((s) => s.trim().isNotEmpty).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -127,12 +119,15 @@ class SpecialtyDetailScreen extends StatelessWidget {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A4A7C)),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Chuyên khoa Nội tim mạch',
-            style: TextStyle(color: Color(0xFF38A3A5), fontWeight: FontWeight.w600, fontSize: 16),
+          Text(
+            specialty.name,
+            style: const TextStyle(color: Color(0xFF38A3A5), fontWeight: FontWeight.w600, fontSize: 16),
           ),
           const SizedBox(height: 24),
-          ...services.map((s) => Container(
+          if (services.isEmpty) 
+            const Center(child: Text('Đang cập nhật...'))
+          else
+            ...services.map((s) => Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -155,16 +150,7 @@ class SpecialtyDetailScreen extends StatelessWidget {
   }
 
   Widget _buildTechnology() {
-    final tech = [
-      'Máy điện tim kỹ thuật số 12 cần GE',
-      'Máy Holter điện tim 24h và Holter huyết áp 24h',
-      'Máy siêu âm tim 3D, 4D GE ViViD95',
-      'Bàn nghiêng và máy gắng sức xe đạp',
-      'Máy gắng sức thảm chạy Welch Allyn',
-      'Các hệ thống monitor theo dõi trung tâm',
-      'Máy chụp mạch ANGIO 2 bình diện SIEMENS',
-      'Máy siêu âm trong lòng mạch IVUS and FFR',
-    ];
+    final tech = (specialty.technology ?? '').split('\n').where((s) => s.trim().isNotEmpty).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -181,7 +167,10 @@ class SpecialtyDetailScreen extends StatelessWidget {
             style: TextStyle(color: Colors.grey, fontSize: 14),
           ),
           const SizedBox(height: 24),
-          GridView.builder(
+          if (tech.isEmpty)
+             const Center(child: Text('Đang cập nhật...'))
+          else
+            GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

@@ -6,9 +6,10 @@ import 'package:tbdd/features/user/appointment/screens/doctor_detail_screen.dart
 
 class DoctorListScreen extends StatefulWidget {
   final String? specialty;
+  final String? specialtyId;
   final String? searchQuery;
   final bool isGeneralView;
-  const DoctorListScreen({super.key, this.specialty, this.searchQuery, this.isGeneralView = false});
+  const DoctorListScreen({super.key, this.specialty, this.specialtyId, this.searchQuery, this.isGeneralView = false});
 
   @override
   State<DoctorListScreen> createState() => _DoctorListScreenState();
@@ -45,9 +46,9 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
   void _filterDoctors(String query) {
     setState(() {
       _filteredDoctors = _allDoctors.where((doc) {
-        final matchesSpecialty = widget.specialty == null || (doc.specialtyIds.contains(widget.specialty));
+        final matchesSpecialty = widget.specialtyId == null || (doc.specialtyIds.contains(widget.specialtyId));
         final matchesSearch = query.isEmpty || 
-          (doc.userId.toLowerCase().contains(query.toLowerCase())) ||
+          (doc.fullName.toLowerCase().contains(query.toLowerCase())) ||
           (doc.position?.toLowerCase().contains(query.toLowerCase()) ?? false);
         return matchesSpecialty && matchesSearch;
       }).toList();
@@ -120,8 +121,10 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
                             width: 70, height: 70,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              image: const DecorationImage(
-                                image: NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
+                              image: DecorationImage(
+                                image: doctor.avatar != null && doctor.avatar!.isNotEmpty
+                                  ? NetworkImage(doctor.avatar!)
+                                  : const NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -136,7 +139,7 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 Text(
-                                  doctor.userId, // Using userId as name for now
+                                  doctor.fullName,
                                   style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 13),
                                 ),
                                 Text(

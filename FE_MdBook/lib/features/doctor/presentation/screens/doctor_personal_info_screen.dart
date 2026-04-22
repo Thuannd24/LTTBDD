@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../auth/data/auth_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class DoctorPersonalInfoScreen extends StatefulWidget {
   final UserProfile? user;
@@ -14,21 +16,59 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
   final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
 
   late TextEditingController _firstNameCtrl;
   late TextEditingController _lastNameCtrl;
   late TextEditingController _phoneCtrl;
   late TextEditingController _emailCtrl;
   late TextEditingController _addressCtrl;
+  late TextEditingController _bloodTypeCtrl;
 
   @override
   void initState() {
     super.initState();
-    _firstNameCtrl = TextEditingController(text: widget.user?.firstName ?? '');
-    _lastNameCtrl = TextEditingController(text: widget.user?.lastName ?? '');
-    _phoneCtrl = TextEditingController(text: widget.user?.phone ?? '');
-    _emailCtrl = TextEditingController(text: widget.user?.email ?? '');
-    _addressCtrl = TextEditingController(text: widget.user?.address ?? '');
+    _firstNameCtrl = TextEditingController();
+    _lastNameCtrl = TextEditingController();
+    _phoneCtrl = TextEditingController();
+    _emailCtrl = TextEditingController();
+    _addressCtrl = TextEditingController();
+    _bloodTypeCtrl = TextEditingController();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
+    final user = await _authService.getMyInfo();
+    if (mounted && user != null) {
+      setState(() {
+        _firstNameCtrl.text = user.firstName ?? '';
+        _lastNameCtrl.text = user.lastName ?? '';
+        _phoneCtrl.text = user.phone ?? '';
+        _emailCtrl.text = user.email ?? '';
+        _addressCtrl.text = user.address ?? '';
+        _bloodTypeCtrl.text = user.bloodType ?? '';
+        _isLoading = false;
+      });
+    } else {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _imageFile = File(image.path);
+      });
+      final result = await _authService.updateAvatar(image.path);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message']), backgroundColor: result['success'] ? Colors.green : Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -40,6 +80,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       'lastName': _lastNameCtrl.text,
       'phone': _phoneCtrl.text,
       'address': _addressCtrl.text,
+      'bloodType': _bloodTypeCtrl.text,
     };
 
     try {
@@ -54,7 +95,10 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi cập nhật')));
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _loadProfile(); // Refresh after save
+      }
     }
   }
 
@@ -69,6 +113,35 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
           children: [
             const Text('Thông tin cá nhân', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const Text('Quản lý thông tin liên hệ và cơ bản của bạn', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 24),
+            
+            Center(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.grey[200],
+                      backgroundImage: _imageFile != null 
+                        ? FileImage(_imageFile!) 
+                        : (widget.user?.avatar != null ? NetworkImage(widget.user!.avatar!) : null) as ImageProvider?,
+                      child: widget.user?.avatar == null && _imageFile == null 
+                        ? const Icon(Icons.camera_alt, size: 30, color: Colors.grey) 
+                        : null,
+                    ),
+                    Positioned(
+                      bottom: 0, right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(color: Color(0xFF38A3A5), shape: BoxShape.circle),
+                        child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 32),
             
             Row(
@@ -80,6 +153,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
             ),
             _buildTextField(_emailCtrl, 'Email', Icons.email_outlined, readOnly: true),
             _buildTextField(_phoneCtrl, 'Số điện thoại', Icons.phone_android_rounded),
+            _buildTextField(_bloodTypeCtrl, 'Nhóm máu', Icons.water_drop_outlined),
             _buildTextField(_addressCtrl, 'Địa chỉ hiện tại', Icons.location_on_outlined, maxLines: 2),
             
             const SizedBox(height: 40),
