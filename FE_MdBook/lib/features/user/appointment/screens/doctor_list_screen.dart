@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:tbdd/features/admin/data/specialty_service.dart';
+import 'package:tbdd/core/models/specialty_model.dart';
 import 'package:tbdd/features/doctor/data/doctor_service.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'package:tbdd/core/constants/app_strings.dart';
 import 'package:tbdd/features/user/appointment/screens/doctor_detail_screen.dart';
+import 'package:tbdd/features/user/widgets/doctor_card.dart';
 
 class DoctorListScreen extends StatefulWidget {
   final String? specialty;
@@ -17,24 +20,30 @@ class DoctorListScreen extends StatefulWidget {
 
 class _DoctorListScreenState extends State<DoctorListScreen> {
   final DoctorService _doctorService = DoctorService();
+  final SpecialtyService _specialtyService = SpecialtyService();
   final TextEditingController _searchCtrl = TextEditingController();
 
   List<DoctorProfile> _allDoctors = [];
   List<DoctorProfile> _filteredDoctors = [];
+  List<Specialty> _specialties = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.text = widget.searchQuery ?? '';
-    _loadDoctors();
+    _loadData();
   }
 
-  Future<void> _loadDoctors() async {
+  Future<void> _loadData() async {
     try {
-      final doctors = await _doctorService.fetchAll();
+      final results = await Future.wait([
+        _doctorService.fetchAll(),
+        _specialtyService.fetchAll(),
+      ]);
       setState(() {
-        _allDoctors = doctors;
+        _allDoctors = results[0] as List<DoctorProfile>;
+        _specialties = results[1] as List<Specialty>;
         _filterDoctors(_searchCtrl.text);
         _loading = false;
       });
@@ -45,12 +54,22 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
 
   void _filterDoctors(String query) {
     setState(() {
+      final q = query.toLowerCase();
       _filteredDoctors = _allDoctors.where((doc) {
-        final matchesSpecialty = widget.specialtyId == null || (doc.specialtyIds.contains(widget.specialtyId));
-        final matchesSearch = query.isEmpty || 
-          (doc.fullName.toLowerCase().contains(query.toLowerCase())) ||
-          (doc.position?.toLowerCase().contains(query.toLowerCase()) ?? false);
-        return matchesSpecialty && matchesSearch;
+        final matchesSpecialtyId = widget.specialtyId == null || (doc.specialtyIds.contains(widget.specialtyId));
+        
+        // Find specialty names for this doctor
+        final docSpecialtyNames = _specialties
+            .where((s) => doc.specialtyIds.contains(s.id))
+            .map((s) => s.name.toLowerCase());
+
+        final matchesSearch = q.isEmpty || 
+          (doc.fullName.toLowerCase().contains(q)) ||
+          (doc.position?.toLowerCase().contains(q) ?? false) ||
+          (doc.degree?.toLowerCase().contains(q) ?? false) ||
+          (docSpecialtyNames.any((name) => name.contains(q)));
+
+        return matchesSpecialtyId && matchesSearch;
       }).toList();
     });
   }
@@ -98,65 +117,16 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
                 itemCount: _filteredDoctors.length,
                 itemBuilder: (context, index) {
                   final doctor = _filteredDoctors[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => DoctorDetailScreen(doctor: doctor)),
-                      );
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 70, height: 70,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              image: DecorationImage(
-                                image: doctor.avatar != null && doctor.avatar!.isNotEmpty
-                                  ? NetworkImage(doctor.avatar!)
-                                  : const NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  doctor.degree ?? 'Bác sĩ',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                                Text(
-                                  doctor.fullName,
-                                  style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 13),
-                                ),
-                                Text(
-                                  'Kinh nghiệm: ${doctor.experienceYears} năm',
-                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                                if (doctor.hourlyRate != null)
-                                   Text(
-                                    '${doctor.hourlyRate!.toInt()} đ',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-                        ],
-                      ),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: DoctorCard(
+                      doctor: doctor,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => DoctorDetailScreen(doctor: doctor)),
+                        );
+                      },
                     ),
                   );
                 },

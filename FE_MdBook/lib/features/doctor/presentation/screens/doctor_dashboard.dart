@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_strings.dart';
-import '../../../../features/auth/data/auth_service.dart';
-import '../../../../features/auth/presentation/screens/login_screen.dart';
-import '../../../../core/models/user_model.dart';
+import 'package:tbdd/core/constants/app_strings.dart';
+import 'package:tbdd/features/auth/data/auth_service.dart';
+import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
+import 'package:tbdd/core/models/user_model.dart';
+import 'package:tbdd/features/doctor/data/doctor_service.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'doctor_profile_edit_screen.dart';
 import 'doctor_schedule_screen.dart';
 import 'doctor_personal_info_screen.dart';
@@ -17,6 +19,8 @@ class DoctorDashboard extends StatefulWidget {
 
 class _DoctorDashboardState extends State<DoctorDashboard> {
   final AuthService _authService = AuthService();
+  final DoctorService _doctorService = DoctorService();
+  DoctorProfile? _doctorInfo;
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -29,9 +33,28 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadDoctorProfile();
+  }
+
+  Future<void> _loadDoctorProfile() async {
+    if (widget.user != null) {
+      try {
+        final doc = await _doctorService.getByUserId(widget.user!.userId);
+        setState(() {
+          _doctorInfo = doc;
+        });
+      } catch (e) {
+        debugPrint('Error loading doctor info: $e');
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     bool isMobile = MediaQuery.of(context).size.width < 900;
-    String doctorId = widget.user?.id ?? 'doctor_id'; // Fallback if user is null
+    String doctorId = _doctorInfo?.id ?? 'doctor_id';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -169,8 +192,16 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(widget.user?.username ?? 'Doctor', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                  const Text(AppStrings.specialistDoctor, style: TextStyle(color: Colors.grey, fontSize: 11)),
+                  Text(
+                    '${_doctorInfo?.degree != null ? '${_doctorInfo!.degree}. ' : ''}${(_doctorInfo?.fullName != null && _doctorInfo!.fullName != 'Bác sĩ') ? _doctorInfo!.fullName : (widget.user?.fullName ?? 'Bác sĩ')}', 
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    _doctorInfo?.position ?? AppStrings.specialistDoctor, 
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

@@ -3,6 +3,8 @@ import 'package:tbdd/features/auth/data/auth_service.dart';
 import 'package:tbdd/core/models/user_model.dart';
 import 'package:tbdd/features/user/screens/user_profile_edit_screen.dart';
 import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
+import 'package:tbdd/features/auth/presentation/screens/password_change_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -138,8 +140,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (updated == true) _loadProfile();
             }
           }),
-          _buildMenuItem(Icons.security, 'Đổi mật khẩu', () {}),
-          _buildMenuItem(Icons.help_outline, 'Hỗ trợ & Liên hệ', () {}),
+          _buildMenuItem(Icons.security, 'Đổi mật khẩu', () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const PasswordChangeScreen()));
+          }),
+          _buildMenuItem(Icons.help_outline, 'Hỗ trợ & Liên hệ', () async {
+            final Uri telLaunchUri = Uri(scheme: 'tel', path: '0389468847');
+            if (await canLaunchUrl(telLaunchUri)) {
+              await launchUrl(telLaunchUri);
+            }
+          }),
         ],
       ),
     );

@@ -16,6 +16,7 @@ import 'package:tbdd/core/models/specialty_model.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
 
 import 'package:tbdd/features/user/screens/patient_medical_record_screen.dart';
+import 'package:tbdd/features/user/widgets/doctor_card.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -236,7 +237,7 @@ class _HomeContentState extends State<HomeContent> {
           onSubmitted: _onSearch,
           decoration: const InputDecoration(
             icon: Icon(Icons.search_rounded, color: Color(0xFF38A3A5)),
-            hintText: AppStrings.searchHint,
+            hintText: 'Tìm kiếm bác sĩ, chuyên khoa...',
             hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
             border: InputBorder.none,
           ),
@@ -363,67 +364,14 @@ class _HomeContentState extends State<HomeContent> {
           itemCount: _doctors.length > 5 ? 5 : _doctors.length, // Show up to 5
           itemBuilder: (context, index) {
             final doctor = _doctors[index];
-            return GestureDetector(
+            return DoctorCard(
+              doctor: doctor,
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => DoctorDetailScreen(doctor: doctor)),
                 );
               },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 18),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey[100]!),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10)),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 80, height: 80,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2F1),
-                        borderRadius: BorderRadius.circular(18),
-                        image: DecorationImage(
-                          image: doctor.avatar != null && doctor.avatar!.isNotEmpty
-                            ? NetworkImage(doctor.avatar!)
-                            : const NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
-                          fit: BoxFit.cover
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            doctor.degree ?? 'Bác sĩ',
-                            style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            doctor.fullName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF2D3142)),
-                          ),
-                          Text(
-                            doctor.position ?? 'Chuyên gia y tế',
-                            style: const TextStyle(color: Colors.grey, fontSize: 13),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Kinh nghiệm: ${doctor.experienceYears} năm',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             );
           },
         ),

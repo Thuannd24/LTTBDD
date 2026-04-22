@@ -180,4 +180,18 @@ public class UserService {
             throw new RuntimeException("Error fetching user info: " + e.getMessage());
         }
     }
+    public void changePassword(com.identityservice.dto.request.PasswordChangeRequest request) {
+        var context = SecurityContextHolder.getContext();
+        String userId = context.getAuthentication().getName();
+        
+        RealmResource realmResource = keycloak.realm(realm);
+        UsersResource usersResource = realmResource.users();
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(request.getNewPassword());
+        credential.setTemporary(false);
+
+        usersResource.get(userId).resetPassword(credential);
+    }
 }

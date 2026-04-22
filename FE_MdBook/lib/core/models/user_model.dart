@@ -59,4 +59,9 @@ class UserProfile {
   bool get isAdmin => roles.contains('ADMIN');
   bool get isDoctor => roles.contains('DOCTOR');
   bool get isUser => roles.contains('USER');
+
+  String get fullName {
+    final name = '${firstName ?? ""} ${lastName ?? ""}'.trim();
+    return name.isEmpty ? username : name;
+  }
 }

@@ -307,4 +307,24 @@ class AuthService {
       return {'success': false, 'message': 'Lỗi kết nối: $e'};
     }
   }
+  Future<Map<String, dynamic>> changePassword(String oldPassword, String newPassword) async {
+    try {
+      final response = await _apiClient.post('/identity/users/change-password', {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      });
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': 'Đổi mật khẩu thành công'};
+      } else {
+        final data = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': _mapErrorCode(data['code'])
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Lỗi kết nối: Không thể đổi mật khẩu.'};
+    }
+  }
 }

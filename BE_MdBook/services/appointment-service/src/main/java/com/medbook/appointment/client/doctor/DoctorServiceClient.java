@@ -71,7 +71,8 @@ public class DoctorServiceClient {
     public void reserveSchedule(Long scheduleId, String appointmentId) {
         try {
             requireResult(
-                    doctorServiceFeignClient.reserveSchedule(scheduleId, new AppointmentReferenceRequest(appointmentId)),
+                    doctorServiceFeignClient.reserveSchedule(scheduleId,
+                            new AppointmentReferenceRequest(appointmentId)),
                     "Doctor-service failed to reserve schedule: " + scheduleId);
         } catch (FeignException.NotFound ex) {
             throw new DoctorScheduleNotFoundException("Doctor schedule not found: " + scheduleId);
@@ -83,7 +84,8 @@ public class DoctorServiceClient {
     public void releaseSchedule(Long scheduleId, String appointmentId) {
         try {
             requireResult(
-                    doctorServiceFeignClient.releaseSchedule(scheduleId, new AppointmentReferenceRequest(appointmentId)),
+                    doctorServiceFeignClient.releaseSchedule(scheduleId,
+                            new AppointmentReferenceRequest(appointmentId)),
                     "Doctor-service failed to release schedule: " + scheduleId);
         } catch (FeignException.NotFound ex) {
             throw new DoctorScheduleNotFoundException("Doctor schedule not found: " + scheduleId);
