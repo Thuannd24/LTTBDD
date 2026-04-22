@@ -29,6 +29,7 @@ class AppointmentTest {
     @Test
     void testAppointmentStatusEnum() {
         assertNotNull(Appointment.AppointmentStatus.CONFIRMED);
+        assertNotNull(Appointment.AppointmentStatus.BOOKING_FAILED);
         assertNotNull(Appointment.AppointmentStatus.CANCELLED);
     }
 }
