@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:tbdd/features/admin/data/specialty_service.dart';
-import 'package:tbdd/core/models/specialty_model.dart';
-import 'package:tbdd/features/doctor/data/doctor_service.dart';
-import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'package:tbdd/core/constants/app_strings.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
+import 'package:tbdd/core/models/specialty_model.dart';
+import 'package:tbdd/features/admin/data/specialty_service.dart';
+import 'package:tbdd/features/doctor/data/doctor_service.dart';
 import 'package:tbdd/features/user/appointment/screens/doctor_detail_screen.dart';
 import 'package:tbdd/features/user/widgets/doctor_card.dart';
 
@@ -12,7 +12,16 @@ class DoctorListScreen extends StatefulWidget {
   final String? specialtyId;
   final String? searchQuery;
   final bool isGeneralView;
-  const DoctorListScreen({super.key, this.specialty, this.specialtyId, this.searchQuery, this.isGeneralView = false});
+  final bool selectionMode;
+
+  const DoctorListScreen({
+    super.key,
+    this.specialty,
+    this.specialtyId,
+    this.searchQuery,
+    this.isGeneralView = false,
+    this.selectionMode = false,
+  });
 
   @override
   State<DoctorListScreen> createState() => _DoctorListScreenState();
@@ -47,8 +56,10 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
         _filterDoctors(_searchCtrl.text);
         _loading = false;
       });
-    } catch (e) {
-      if (mounted) setState(() => _loading = false);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -56,35 +67,47 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
     setState(() {
       final q = query.toLowerCase();
       _filteredDoctors = _allDoctors.where((doc) {
-        final matchesSpecialtyId = widget.specialtyId == null || (doc.specialtyIds.contains(widget.specialtyId));
-        
-        // Find specialty names for this doctor
+        final matchesSpecialtyId =
+            widget.specialtyId == null || doc.specialtyIds.contains(widget.specialtyId);
+
         final docSpecialtyNames = _specialties
             .where((s) => doc.specialtyIds.contains(s.id))
             .map((s) => s.name.toLowerCase());
 
-        final matchesSearch = q.isEmpty || 
-          (doc.fullName.toLowerCase().contains(q)) ||
-          (doc.position?.toLowerCase().contains(q) ?? false) ||
-          (doc.degree?.toLowerCase().contains(q) ?? false) ||
-          (docSpecialtyNames.any((name) => name.contains(q)));
+        final matchesSearch = q.isEmpty ||
+            doc.fullName.toLowerCase().contains(q) ||
+            (doc.position?.toLowerCase().contains(q) ?? false) ||
+            (doc.degree?.toLowerCase().contains(q) ?? false) ||
+            docSpecialtyNames.any((name) => name.contains(q));
 
         return matchesSpecialtyId && matchesSearch;
       }).toList();
     });
   }
 
+  void _handleDoctorTap(DoctorProfile doctor) {
+    if (widget.selectionMode) {
+      Navigator.pop(context, doctor);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => DoctorDetailScreen(doctor: doctor)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: widget.isGeneralView ? AppBar(
+      appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
         title: Text(widget.specialty ?? 'Danh sách bác sĩ'),
         centerTitle: true,
-      ) : null,
+      ),
       body: Column(
         children: [
           Padding(
@@ -121,12 +144,7 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: DoctorCard(
                       doctor: doctor,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => DoctorDetailScreen(doctor: doctor)),
-                        );
-                      },
+                      onTap: () => _handleDoctorTap(doctor),
                     ),
                   );
                 },

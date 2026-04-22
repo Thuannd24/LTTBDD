@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
-import 'booking_screen.dart';
+import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
 
 class DoctorDetailScreen extends StatelessWidget {
   final DoctorProfile doctor;
@@ -24,7 +24,7 @@ class DoctorDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeaderCard(context),
+            _buildHeaderCard(),
             const SizedBox(height: 8),
             _buildInfoSection(
               title: 'Giới thiệu',
@@ -54,7 +54,7 @@ class DoctorDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderCard(BuildContext context) {
+  Widget _buildHeaderCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -73,13 +73,14 @@ class DoctorDetailScreen extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 100, height: 100,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   image: DecorationImage(
                     image: doctor.avatar != null && doctor.avatar!.isNotEmpty
-                      ? NetworkImage(doctor.avatar!)
-                      : const NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
+                        ? NetworkImage(doctor.avatar!)
+                        : const NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
                     fit: BoxFit.cover,
                   ),
                   border: Border.all(color: const Color(0xFFE0F2F1), width: 4),
@@ -92,10 +93,17 @@ class DoctorDetailScreen extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xFFE0F2F1), borderRadius: BorderRadius.circular(6)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0F2F1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Text(
                         doctor.degree ?? 'Bác sĩ',
-                        style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 10, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Color(0xFF38A3A5),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -116,7 +124,7 @@ class DoctorDetailScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem('Kinh nghiệm', '${doctor.experienceYears} Năm'),
+              _buildStatItem('Kinh nghiệm', '${doctor.experienceYears} năm'),
               _buildStatItem('Bệnh nhân', '100+'),
               _buildStatItem('Trạng thái', doctor.status ?? 'Hoạt động'),
             ],
@@ -173,9 +181,9 @@ class DoctorDetailScreen extends StatelessWidget {
               const Text('Giá khám dự kiến', style: TextStyle(color: Colors.grey, fontSize: 12)),
               const SizedBox(height: 4),
               Text(
-                doctor.hourlyRate != null 
-                  ? NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(doctor.hourlyRate)
-                  : 'Liên hệ',
+                doctor.hourlyRate != null
+                    ? NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(doctor.hourlyRate)
+                    : 'Liên hệ',
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
               ),
             ],
@@ -186,7 +194,10 @@ class DoctorDetailScreen extends StatelessWidget {
               height: 52,
               child: ElevatedButton(
                 onPressed: () {
-                   Navigator.push(context, MaterialPageRoute(builder: (context) => const BookingScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => BookingScreen(initialDoctor: doctor)),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF38A3A5),

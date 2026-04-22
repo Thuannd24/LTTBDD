@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'booking_success_screen.dart';
-import '../data/appointment_service.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
+import 'package:tbdd/core/models/doctor_schedule_model.dart';
+import 'package:tbdd/core/models/exam_package_model.dart';
+import 'package:tbdd/core/models/user_model.dart';
+import 'package:tbdd/features/user/appointment/data/appointment_service.dart';
+import 'package:tbdd/features/user/appointment/screens/booking_success_screen.dart';
 
 class CheckoutScreen extends StatelessWidget {
-  final Map<String, dynamic>? doctorData;
-  final DateTime? selectedDate;
-  final String? selectedTime;
+  final UserProfile? patient;
+  final DoctorProfile doctor;
+  final ExamPackageModel packageData;
+  final DoctorScheduleModel selectedSchedule;
   final String? reason;
 
   const CheckoutScreen({
     super.key,
-    this.doctorData,
-    this.selectedDate,
-    this.selectedTime,
+    this.patient,
+    required this.doctor,
+    required this.packageData,
+    required this.selectedSchedule,
     this.reason,
   });
 
   @override
   Widget build(BuildContext context) {
-    String formattedDate = selectedDate != null 
-        ? DateFormat('dd/MM/yyyy').format(selectedDate!) 
-        : '28/03/2026';
-    
+    final start = DateFormat('HH:mm, dd/MM/yyyy').format(selectedSchedule.startTime);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -46,39 +50,22 @@ class CheckoutScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSectionHeader(Icons.medical_services_outlined, 'Dịch vụ'),
-                  _buildInfoRow('Hình thức', 'Khám chuyên khoa tại\nbệnh viện'),
-                  
+                  _buildInfoRow('Gói khám', packageData.name),
+                  _buildInfoRow('Mã gói', packageData.code),
                   const Divider(thickness: 1, color: Color(0xFFF5F5F5)),
-
                   _buildSectionHeader(Icons.person_outline, 'Khách hàng'),
-                  _buildInfoRow('Khách hàng', 'Nguyễn Đình Thuân'),
-                  _buildInfoRow('Lý do khám', reason ?? 'Khám định kỳ'),
-                  
+                  _buildInfoRow('Khách hàng', patient?.fullName ?? patient?.username ?? 'Người dùng'),
+                  _buildInfoRow('Email', patient?.email ?? 'Chưa có email'),
+                  _buildInfoRow('Lý do khám', (reason?.trim().isNotEmpty ?? false) ? reason!.trim() : 'Khám định kỳ'),
                   const Divider(thickness: 1, color: Color(0xFFF5F5F5)),
-
                   _buildSectionHeader(Icons.medical_information_outlined, 'Bác sĩ'),
-                  _buildInfoRow('Bác sĩ', doctorData?['name'] ?? 'BS. Trịnh Ngọc Phát'),
-                  _buildInfoRow('Thời gian', '${selectedTime ?? '10:00'}, $formattedDate'),
-                  _buildInfoRow('Địa điểm', 'BV ĐKQT Vinmec Times\nCity (Hà Nội)'),
-                  _buildInfoRow('Chuyên khoa', doctorData?['specialty'] ?? 'Da liễu'),
-                  _buildInfoRow(
-                    'Phí khám dự kiến', 
-                    NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(doctorData?['price'] ?? 690000),
-                    isBoldValue: true
-                  ),
-                  
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Text(
-                      'Phí khám tại bệnh viện có thể thay đổi tùy theo dịch vụ sử dụng.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
-                    ),
-                  ),
+                  _buildInfoRow('Bác sĩ', doctor.fullName),
+                  _buildInfoRow('Thời gian', start),
+                  _buildInfoRow('Trạng thái lịch', selectedSchedule.status),
                 ],
               ),
             ),
           ),
-          
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
@@ -86,7 +73,6 @@ class CheckoutScreen extends StatelessWidget {
               height: 52,
               child: ElevatedButton(
                 onPressed: () async {
-                  // Show loading indicator
                   showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -94,52 +80,33 @@ class CheckoutScreen extends StatelessWidget {
                   );
 
                   try {
-                    // Make the API call
                     final appointmentService = AppointmentService();
-                    await appointmentService.createAppointment(
-                      doctorId: doctorData?['userId'] ?? doctorData?['id'] ?? 'dummy_doctor_id',
-                      packageId: 'PKG_DEFAULT',
+                    final response = await appointmentService.createAppointmentRequest(
+                      doctorId: doctor.id,
+                      packageId: packageData.id,
+                      doctorScheduleId: selectedSchedule.id,
                       note: reason,
-                      // For now, these are dummy IDs until scheduling UI is built
-                      doctorScheduleId: 0,
-                      roomSlotId: 0,
                     );
 
-                    // Dismiss loading
-                    if (context.mounted) Navigator.pop(context);
-
-                    // Navigate to success
                     if (context.mounted) {
+                      Navigator.pop(context);
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (context) => BookingSuccessScreen(
-                            doctorData: doctorData,
-                            selectedDate: selectedDate,
-                            selectedTime: selectedTime,
+                            doctor: doctor,
+                            packageData: packageData,
+                            selectedSchedule: selectedSchedule,
+                            requestId: response['result']?['id'] as String?,
                           ),
                         ),
                       );
                     }
                   } catch (e) {
-                    // Dismiss loading
-                    if (context.mounted) Navigator.pop(context);
-                    
-                    // Allow UI to navigate for presentation purposes even if API throws 
-                    // (because we don't have real schedule data yet)
                     if (context.mounted) {
+                      Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Lỗi Server: Nhưng vẫn giả lập thành công :D -> $e'), duration: const Duration(seconds: 4)),
-                      );
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookingSuccessScreen(
-                            doctorData: doctorData,
-                            selectedDate: selectedDate,
-                            selectedTime: selectedTime,
-                          ),
-                        ),
+                        SnackBar(content: Text('Không thể gửi yêu cầu đặt lịch: $e')),
                       );
                     }
                   }
@@ -170,18 +137,14 @@ class CheckoutScreen extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 18, 
-              fontWeight: FontWeight.bold, 
-              color: Color(0xFF38A3A5)
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF38A3A5)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {bool isBoldValue = false}) {
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -189,20 +152,13 @@ class CheckoutScreen extends StatelessWidget {
         children: [
           SizedBox(
             width: 120,
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 15, color: Colors.grey),
-            ),
+            child: Text(label, style: const TextStyle(fontSize: 15, color: Colors.grey)),
           ),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: isBoldValue ? FontWeight.bold : FontWeight.w500,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
             ),
           ),
         ],

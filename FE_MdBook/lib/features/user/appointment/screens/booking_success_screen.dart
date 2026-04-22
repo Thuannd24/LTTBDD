@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../main.dart';
-import 'appointment_list_screen.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
+import 'package:tbdd/core/models/doctor_schedule_model.dart';
+import 'package:tbdd/core/models/exam_package_model.dart';
 
 class BookingSuccessScreen extends StatelessWidget {
-  final Map<String, dynamic>? doctorData;
-  final DateTime? selectedDate;
-  final String? selectedTime;
+  final DoctorProfile doctor;
+  final ExamPackageModel packageData;
+  final DoctorScheduleModel selectedSchedule;
+  final String? requestId;
 
   const BookingSuccessScreen({
     super.key,
-    this.doctorData,
-    this.selectedDate,
-    this.selectedTime,
+    required this.doctor,
+    required this.packageData,
+    required this.selectedSchedule,
+    this.requestId,
   });
 
   @override
   Widget build(BuildContext context) {
-    String formattedDate = selectedDate != null 
-        ? DateFormat('dd/MM/yyyy').format(selectedDate!) 
-        : '28/03/2026';
-    String doctorName = doctorData?['name'] ?? 'Trịnh Ngọc Phát';
+    final formattedDate = DateFormat('HH:mm - dd/MM/yyyy').format(selectedSchedule.startTime);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -38,30 +38,28 @@ class BookingSuccessScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 40),
             const Text(
-              'ĐẶT LỊCH THÀNH CÔNG',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
-              ),
+              'GỬI YÊU CẦU THÀNH CÔNG',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             Text(
-              'Lịch hẹn với bác sĩ $doctorName vào lúc ${selectedTime ?? '10:40'} ngày $formattedDate của quý khách đã tự động xác nhận. Vui lòng kiểm tra thông tin lịch hẹn tại phần XEM LỊCH HẸN.',
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[600],
-                height: 1.5,
-              ),
+              'Yêu cầu đặt lịch cho gói ${packageData.name} với bác sĩ ${doctor.fullName} vào $formattedDate đã được gửi. Bệnh viện sẽ xác nhận sau khi phân bổ phòng và thiết bị.',
+              style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
               textAlign: TextAlign.center,
             ),
+            if (requestId != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Mã yêu cầu: $requestId',
+                style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF38A3A5)),
+              ),
+            ],
             const Spacer(),
-            // Illustration placeholder
             Container(
-              height: 350,
-              decoration: BoxDecoration(
-                image: const DecorationImage(
+              height: 300,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
                   image: NetworkImage('https://img.freepik.com/free-vector/doctors-nurses-concept-illustration_114360-1515.jpg'),
                   fit: BoxFit.contain,
                 ),
@@ -72,11 +70,7 @@ class BookingSuccessScreen extends StatelessWidget {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: () {
-                  // This is a mock. In a real app we'd navigate to the Appointments tab.
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                  // Trigger navigation to AppointmentList tab via some state management if needed
-                },
+                onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF38A3A5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

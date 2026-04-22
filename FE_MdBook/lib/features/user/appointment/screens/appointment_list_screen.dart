@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
-import 'booking_screen.dart';
-import 'reschedule_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:tbdd/core/models/appointment_request_model.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
+import 'package:tbdd/core/models/exam_package_model.dart';
+import 'package:tbdd/features/doctor/data/doctor_service.dart';
+import 'package:tbdd/features/user/appointment/data/appointment_service.dart';
+import 'package:tbdd/features/user/appointment/data/exam_package_service.dart';
+import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
 
 class AppointmentListScreen extends StatefulWidget {
   const AppointmentListScreen({super.key});
@@ -10,77 +16,101 @@ class AppointmentListScreen extends StatefulWidget {
 }
 
 class _AppointmentListScreenState extends State<AppointmentListScreen> {
-  List<Map<String, dynamic>> _appointments = [
-    {
-      'type': 'Nội/ Nội trú Nội',
-      'doctor': 'BS. Trịnh Ngọc Phát',
-      'hospital': 'BV ĐKQT Vinmec Times City (Hà Nội)',
-      'date': '28',
-      'month_year': '3/2026',
-      'status': 'Đã xác nhận',
-      'time': '10:00',
-      'countdown': 'Còn 1 ngày',
-      'patient': 'Nguyễn Đình Thuân',
-    }
-  ];
+  final AppointmentService _appointmentService = AppointmentService();
+  final DoctorService _doctorService = DoctorService();
+  final ExamPackageService _examPackageService = ExamPackageService();
 
-  void _confirmCancel(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Bạn có chắc chắn muốn hủy lịch hẹn khám tại Vinmec?',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Bằng việc ấn Xác nhận hủy lịch, lịch hẹn này sẽ không còn tồn tại và Vinmec không thể hỗ trợ tốt nhất khi bạn đến thăm khám tại viện.',
-                style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _appointments.removeAt(index);
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Xác nhận hủy lịch',
-                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF38A3A5),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
-                      ),
-                      child: const Text('Đóng', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  List<AppointmentRequestModel> _requests = [];
+  Map<String, DoctorProfile> _doctorById = {};
+  Map<String, ExamPackageModel> _packageById = {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final results = await Future.wait([
+        _appointmentService.getMyAppointmentRequests(),
+        _doctorService.fetchAll(),
+        _examPackageService.fetchAll(),
+      ]);
+
+      final doctors = results[1] as List<DoctorProfile>;
+      final packages = results[2] as List<ExamPackageModel>;
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _requests = results[0] as List<AppointmentRequestModel>;
+        _doctorById = {for (final doctor in doctors) doctor.id: doctor};
+        _packageById = {for (final pkg in packages) pkg.id: pkg};
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _cancelConfirmedAppointment(AppointmentRequestModel request) async {
+    if (request.appointmentId == null) {
+      return;
+    }
+
+    try {
+      await _appointmentService.cancelAppointment(
+        appointmentId: request.appointmentId!,
+        reason: 'Bệnh nhân yêu cầu hủy lịch',
+      );
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã hủy lịch hẹn')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không thể hủy lịch: $e')),
+        );
+      }
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'PENDING_ASSIGNMENT':
+        return 'Chờ xác nhận';
+      case 'CONFIRMED':
+        return 'Đã xác nhận';
+      case 'REJECTED':
+        return 'Đã từ chối';
+      case 'CANCELLED':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'PENDING_ASSIGNMENT':
+        return Colors.orange;
+      case 'CONFIRMED':
+        return const Color(0xFF38A3A5);
+      case 'REJECTED':
+      case 'CANCELLED':
+        return Colors.redAccent;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -110,25 +140,18 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
                   children: [
                     const Text(
                       'Lịch hẹn',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const BookingScreen()),
-                        );
+                        ).then((_) => _loadData());
                       },
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                         child: const Icon(Icons.add, color: Color(0xFF38A3A5), size: 24),
                       ),
                     ),
@@ -137,109 +160,67 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
               ),
             ],
           ),
-          
           Expanded(
-            child: _appointments.isEmpty 
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _appointments.length,
-                  itemBuilder: (context, index) {
-                    final appointment = _appointments[index];
-                    return _buildAppointmentCard(appointment, index);
-                  },
-                ),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _loadData,
+                    child: _requests.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _requests.length,
+                            itemBuilder: (context, index) => _buildRequestCard(_requests[index]),
+                          ),
+                  ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: const Color(0xFF38A3A5),
-        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                children: [
-                  Image.network(
-                    'https://img.freepik.com/free-vector/no-data-concept-illustration_114360-616.jpg', 
-                    height: 180,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Hiện tại bạn chưa có lịch hẹn nào',
-                    style: TextStyle(color: Colors.grey, fontSize: 15),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: 150,
-                    height: 45,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const BookingScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF38A3A5),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                        elevation: 0,
-                      ),
-                      child: const Text('ĐẶT HẸN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    'Nếu bạn đã nhận được tin nhắn SMS xác nhận đặt hẹn từ BV ĐKQT Vinmec nhưng chưa thấy thông tin lịch hẹn ở đây. Vui lòng:',
-                    style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildEmptyStateInstruction('1. Kiểm tra bạn đã kết nối hồ sơ y tế chưa ', 'tại đây'),
-                  _buildEmptyStateInstruction('2. Kiểm tra thông tin đặt lịch và thông tin hồ sơ cá nhân có chính xác không ', 'tại đây'),
-                  _buildEmptyStateInstruction('3. Liên hệ tới CSKH để được hỗ trợ theo ', 'số hotline'),
-                ],
-              ),
-            ),
-          ],
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const SizedBox(height: 80),
+        const Center(
+          child: Text(
+            'Hiện tại bạn chưa có yêu cầu đặt lịch nào',
+            style: TextStyle(color: Colors.grey, fontSize: 15),
+            textAlign: TextAlign.center,
+          ),
         ),
-      ),
+        const SizedBox(height: 24),
+        Center(
+          child: SizedBox(
+            width: 160,
+            height: 45,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BookingScreen()),
+                ).then((_) => _loadData());
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF38A3A5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                elevation: 0,
+              ),
+              child: const Text('ĐẶT HẸN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildEmptyStateInstruction(String text, String linkText) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
-          children: [
-            TextSpan(text: text),
-            TextSpan(
-              text: linkText,
-              style: const TextStyle(color: Color(0xFF38A3A5), fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildRequestCard(AppointmentRequestModel request) {
+    final doctor = _doctorById[request.doctorId];
+    final packageData = _packageById[request.packageId];
+    final createdAt = request.createdAt;
 
-  Widget _buildAppointmentCard(Map<String, dynamic> appointment, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -254,130 +235,52 @@ class _AppointmentListScreenState extends State<AppointmentListScreen> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE0F2F1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        appointment['month_year'],
-                        style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 11),
-                      ),
-                      Text(
-                        appointment['date'],
-                        style: const TextStyle(
-                          color: Color(0xFF38A3A5),
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        appointment['type'],
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Bác sĩ: ${appointment['doctor']}',
-                        style: const TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                      Text(
-                        appointment['hospital'],
-                        style: const TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ],
+                  child: Text(
+                    packageData?.name ?? request.packageId,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const SizedBox(width: 65),
-                Text(
-                  appointment['status'],
-                  style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 12),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  appointment['time'],
-                  style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  appointment['countdown'],
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 65),
-                Text(
-                  appointment['patient'],
-                  style: const TextStyle(color: Color(0xFF38A3A5), fontWeight: FontWeight.w500),
-                ),
-                const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF38A3A5),
-                    borderRadius: BorderRadius.circular(4),
+                    color: _statusColor(request.status).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text('Tôi', style: TextStyle(color: Colors.white, fontSize: 10)),
+                  child: Text(
+                    _statusLabel(request.status),
+                    style: TextStyle(color: _statusColor(request.status), fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            Text('Bác sĩ: ${doctor?.fullName ?? request.doctorId}'),
+            Text('Schedule ID: ${request.doctorScheduleId}'),
+            if (createdAt != null) Text('Tạo lúc: ${DateFormat('dd/MM/yyyy HH:mm').format(createdAt)}'),
+            if (request.note != null && request.note!.isNotEmpty) Text('Ghi chú: ${request.note}'),
+            if (request.rejectionReason != null && request.rejectionReason!.isNotEmpty)
+              Text(
+                'Lý do từ chối: ${request.rejectionReason}',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            if (request.appointmentId != null) Text('Mã lịch hẹn: ${request.appointmentId}'),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RescheduleScreen(appointment: appointment),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey[300]!),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Đổi lịch', style: TextStyle(color: Colors.black54)),
-                  ),
+            if (request.status == 'CONFIRMED' && request.appointmentId != null)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => _cancelConfirmedAppointment(request),
+                  child: const Text('Hủy lịch'),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _confirmCancel(index),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey[300]!),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Hủy lịch', style: TextStyle(color: Colors.black54)),
-                  ),
-                ),
-              ],
-            ),
+              ),
           ],
         ),
       ),
