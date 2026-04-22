@@ -23,58 +23,56 @@ import java.util.UUID;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Appointment {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     String id;
-
+    
     @Column(nullable = false, length = 50)
     String patientUserId;
-
+    
     @Column(nullable = false, length = 50)
     String doctorId;
-
+    
     @Column(nullable = false)
     Long doctorScheduleId;
 
+    Long roomSlotId;
+
+    Long equipmentSlotId;
+    
     @Column(nullable = false, length = 50)
     String facilityId;
-
+    
     @Column(nullable = false, length = 50)
     String packageId;
-
-    @Column(nullable = false, length = 50)
+    
+    @Column(length = 50)
     String packageStepId;
-
+    
     @Column(nullable = false, length = 30)
     @Enumerated(EnumType.STRING)
     AppointmentStatus status;
-
+    
     @Column(columnDefinition = "TEXT")
     String note;
-
+    
     @Column(columnDefinition = "TEXT")
     String cancelReason;
-
-    @Column(length = 100)
-    String failureCode;
-
-    @Column(columnDefinition = "TEXT")
-    String failureMessage;
-
+    
     @CreatedDate
     @Column(nullable = false, updatable = false)
     LocalDateTime createdAt;
-
+    
     @LastModifiedDate
     @Column(nullable = false)
     LocalDateTime updatedAt;
-
+    
     public enum AppointmentStatus {
+        PENDING,
         CONFIRMED,
-        BOOKING_FAILED,
         CANCELLED,
-        CANCELLATION_FAILED
+        COMPLETED
     }
 
     @PrePersist
