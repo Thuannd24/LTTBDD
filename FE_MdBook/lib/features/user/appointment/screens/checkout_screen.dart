@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'booking_success_screen.dart';
+import '../data/appointment_service.dart';
 
 class CheckoutScreen extends StatelessWidget {
   final Map<String, dynamic>? doctorData;
@@ -84,17 +85,64 @@ class CheckoutScreen extends StatelessWidget {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BookingSuccessScreen(
-                        doctorData: doctorData,
-                        selectedDate: selectedDate,
-                        selectedTime: selectedTime,
-                      ),
-                    ),
+                onPressed: () async {
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(child: CircularProgressIndicator()),
                   );
+
+                  try {
+                    // Make the API call
+                    final appointmentService = AppointmentService();
+                    await appointmentService.createAppointment(
+                      doctorId: doctorData?['userId'] ?? doctorData?['id'] ?? 'dummy_doctor_id',
+                      packageId: 'PKG_DEFAULT',
+                      note: reason,
+                      // For now, these are dummy IDs until scheduling UI is built
+                      doctorScheduleId: 0,
+                      roomSlotId: 0,
+                    );
+
+                    // Dismiss loading
+                    if (context.mounted) Navigator.pop(context);
+
+                    // Navigate to success
+                    if (context.mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BookingSuccessScreen(
+                            doctorData: doctorData,
+                            selectedDate: selectedDate,
+                            selectedTime: selectedTime,
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    // Dismiss loading
+                    if (context.mounted) Navigator.pop(context);
+                    
+                    // Allow UI to navigate for presentation purposes even if API throws 
+                    // (because we don't have real schedule data yet)
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Lỗi Server: Nhưng vẫn giả lập thành công :D -> $e'), duration: const Duration(seconds: 4)),
+                      );
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BookingSuccessScreen(
+                            doctorData: doctorData,
+                            selectedDate: selectedDate,
+                            selectedTime: selectedTime,
+                          ),
+                        ),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF38A3A5),

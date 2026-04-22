@@ -5,9 +5,8 @@ import com.medbook.appointment.client.model.RoomInfo;
 import com.medbook.appointment.client.model.SlotInfo;
 import com.medbook.appointment.dto.ApiResponse;
 import com.medbook.appointment.exception.EquipmentNotFoundException;
-import com.medbook.appointment.exception.GrpcCommunicationException;
-import com.medbook.appointment.exception.GrpcPermissionDeniedException;
 import com.medbook.appointment.exception.RoomNotFoundException;
+import com.medbook.appointment.exception.ServiceCommunicationException;
 import com.medbook.appointment.exception.SlotNotFoundException;
 import feign.FeignException;
 import org.springframework.stereotype.Component;
@@ -25,7 +24,7 @@ public class SlotServiceClient {
         try {
             SlotDetailsResponse response = requireResult(
                     slotServiceFeignClient.getSlot(slotId),
-                    "Slot-service returned an empty response for slot: " + slotId);
+                    "Slot not found: " + slotId);
             return new SlotInfo(
                     String.valueOf(response.id()),
                     response.targetType(),
@@ -37,7 +36,7 @@ public class SlotServiceClient {
         } catch (FeignException.NotFound ex) {
             throw new SlotNotFoundException("Slot not found: " + slotId);
         } catch (FeignException ex) {
-            throw mapFeignException(ex, "slot-service");
+            throw new ServiceCommunicationException("Error calling slot-service", ex);
         }
     }
 
@@ -45,7 +44,7 @@ public class SlotServiceClient {
         try {
             RoomDetailsResponse response = requireResult(
                     slotServiceFeignClient.getRoom(roomId),
-                    "Slot-service returned an empty response for room: " + roomId);
+                    "Room not found: " + roomId);
             return new RoomInfo(
                     response.id(),
                     response.roomName(),
@@ -54,7 +53,7 @@ public class SlotServiceClient {
         } catch (FeignException.NotFound ex) {
             throw new RoomNotFoundException("Room not found: " + roomId);
         } catch (FeignException ex) {
-            throw mapFeignException(ex, "slot-service");
+            throw new ServiceCommunicationException("Error calling slot-service", ex);
         }
     }
 
@@ -62,7 +61,7 @@ public class SlotServiceClient {
         try {
             EquipmentDetailsResponse response = requireResult(
                     slotServiceFeignClient.getEquipment(equipmentId),
-                    "Slot-service returned an empty response for equipment: " + equipmentId);
+                    "Equipment not found: " + equipmentId);
             return new EquipmentInfo(
                     response.id(),
                     response.equipmentName(),
@@ -71,7 +70,7 @@ public class SlotServiceClient {
         } catch (FeignException.NotFound ex) {
             throw new EquipmentNotFoundException("Equipment not found: " + equipmentId);
         } catch (FeignException ex) {
-            throw mapFeignException(ex, "slot-service");
+            throw new ServiceCommunicationException("Error calling slot-service", ex);
         }
     }
 
@@ -79,11 +78,11 @@ public class SlotServiceClient {
         try {
             requireResult(
                     slotServiceFeignClient.reserveSlot(slotId, new AppointmentReferenceRequest(appointmentId)),
-                    "Slot-service failed to reserve slot: " + slotId);
+                    "Failed to reserve slot: " + slotId);
         } catch (FeignException.NotFound ex) {
             throw new SlotNotFoundException("Slot not found: " + slotId);
         } catch (FeignException ex) {
-            throw mapFeignException(ex, "slot-service");
+            throw new ServiceCommunicationException("Error reserving slot", ex);
         }
     }
 
@@ -91,26 +90,18 @@ public class SlotServiceClient {
         try {
             requireResult(
                     slotServiceFeignClient.releaseSlot(slotId, new AppointmentReferenceRequest(appointmentId)),
-                    "Slot-service failed to release slot: " + slotId);
+                    "Failed to release slot: " + slotId);
         } catch (FeignException.NotFound ex) {
             throw new SlotNotFoundException("Slot not found: " + slotId);
         } catch (FeignException ex) {
-            throw mapFeignException(ex, "slot-service");
+            throw new ServiceCommunicationException("Error releasing slot", ex);
         }
     }
 
     private <T> T requireResult(ApiResponse<T> response, String message) {
         if (response == null || response.getResult() == null) {
-            throw new GrpcCommunicationException(message);
+            throw new ServiceCommunicationException(message);
         }
         return response.getResult();
-    }
-
-    private RuntimeException mapFeignException(FeignException ex, String serviceName) {
-        return switch (ex.status()) {
-            case 403 -> new GrpcPermissionDeniedException("Permission denied when calling " + serviceName, ex);
-            case 400, 503 -> new GrpcCommunicationException(serviceName + " unavailable", ex);
-            default -> new GrpcCommunicationException("Error calling " + serviceName, ex);
-        };
     }
 }

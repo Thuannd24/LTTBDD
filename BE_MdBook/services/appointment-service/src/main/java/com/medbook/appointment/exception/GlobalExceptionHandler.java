@@ -29,21 +29,11 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex) {
         String message = ex.getMessage();
-        if (ex instanceof MethodArgumentNotValidException methodArgumentNotValidException
-                && methodArgumentNotValidException.getBindingResult().getFieldError() != null) {
-            message = methodArgumentNotValidException.getBindingResult().getFieldError().getDefaultMessage();
+        if (ex instanceof MethodArgumentNotValidException e
+                && e.getBindingResult().getFieldError() != null) {
+            message = e.getBindingResult().getFieldError().getDefaultMessage();
         }
         return buildResponse(HttpStatus.BAD_REQUEST, 1400, message);
-    }
-
-    @ExceptionHandler(GrpcPermissionDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handlePermissionDenied(GrpcPermissionDeniedException ex) {
-        return buildResponse(HttpStatus.FORBIDDEN, 1403, ex.getMessage());
-    }
-
-    @ExceptionHandler(GrpcUnauthenticatedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnauthenticated(GrpcUnauthenticatedException ex) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, 1401, ex.getMessage());
     }
 
     @ExceptionHandler(AppointmentAccessDeniedException.class)
@@ -52,12 +42,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleSpringAccessDenied(AccessDeniedException ex) {
         return buildResponse(HttpStatus.FORBIDDEN, 1403, ex.getMessage());
     }
 
-    @ExceptionHandler(GrpcCommunicationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleGrpcCommunication(GrpcCommunicationException ex) {
+    @ExceptionHandler(ServiceCommunicationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleServiceCommunication(ServiceCommunicationException ex) {
         return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, 1503, ex.getMessage());
     }
 
@@ -67,10 +57,7 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ApiResponse<Void>> buildResponse(HttpStatus status, int code, String message) {
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .code(code)
-                .message(message)
-                .build();
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.status(status).body(
+                ApiResponse.<Void>builder().code(code).message(message).build());
     }
 }

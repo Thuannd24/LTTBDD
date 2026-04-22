@@ -68,11 +68,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 220,
                   width: 220,
                   decoration: const BoxDecoration(
+                    color: Color(0xFFE0F2F1),
                     shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: NetworkImage('https://img.freepik.com/free-vector/happy-family-concept-illustration_114360-1498.jpg'),
-                      fit: BoxFit.cover,
-                    ),
+                  ),
+                  child: const Icon(
+                    Icons.family_restroom,
+                    size: 100,
+                    color: Color(0xFF38A3A5),
                   ),
                 ),
               ),

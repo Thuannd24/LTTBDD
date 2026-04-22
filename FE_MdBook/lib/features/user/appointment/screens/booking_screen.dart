@@ -23,6 +23,14 @@ class _BookingScreenState extends State<BookingScreen> {
 
   final List<String> _morningSlots = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30'];
   final List<String> _afternoonSlots = ['13:30', '14:00', '14:30', '15:00', '15:30', '16:00'];
+  
+  final TextEditingController _reasonController = TextEditingController();
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
 
   List<DateTime> get _defaultDates {
     DateTime now = DateTime.now();
@@ -287,10 +295,11 @@ class _BookingScreenState extends State<BookingScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextField(
+                            controller: _reasonController,
                             maxLines: 3,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               hintText: 'Vui lòng mô tả rõ triệu chứng của bạn và nhu cầu thăm khám.',
-                              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                              hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
                               border: InputBorder.none,
                             ),
                           ),
@@ -311,7 +320,26 @@ class _BookingScreenState extends State<BookingScreen> {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const CheckoutScreen()));
+                    // Check if selections are made
+                    if (_selectedDoctor == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn bác sĩ')));
+                      return;
+                    }
+                    if (_selectedSlot == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn giờ khám')));
+                      return;
+                    }
+
+                    DateTime chosenDate = _selectedDateIndex == 3 
+                        ? _selectedCustomDate 
+                        : _defaultDates[_selectedDateIndex];
+
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => CheckoutScreen(
+                      doctorData: _selectedDoctor,
+                      selectedDate: chosenDate,
+                      selectedTime: _selectedSlot,
+                      reason: _reasonController.text.isNotEmpty ? _reasonController.text : "Khám tổng quát",
+                    )));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF38A3A5),
