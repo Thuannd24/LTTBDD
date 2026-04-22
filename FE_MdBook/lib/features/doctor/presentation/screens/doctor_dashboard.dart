@@ -5,9 +5,9 @@ import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
 import 'package:tbdd/core/models/user_model.dart';
 import 'package:tbdd/features/doctor/data/doctor_service.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
-import 'doctor_profile_edit_screen.dart';
-import 'doctor_schedule_screen.dart';
-import 'doctor_personal_info_screen.dart';
+import 'package:tbdd/features/doctor/presentation/screens/doctor_profile_edit_screen.dart';
+import 'package:tbdd/features/doctor/presentation/screens/doctor_schedule_screen.dart';
+import 'package:tbdd/features/doctor/presentation/screens/doctor_personal_info_screen.dart';
 
 class DoctorDashboard extends StatefulWidget {
   final UserProfile? user;

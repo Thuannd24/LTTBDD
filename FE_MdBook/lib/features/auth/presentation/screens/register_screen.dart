@@ -123,11 +123,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 height: 150,
                 width: 150,
                 decoration: const BoxDecoration(
+                  color: Color(0xFFE0F2F1),
                   shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: NetworkImage('https://img.freepik.com/free-vector/happy-family-concept-illustration_114360-1498.jpg'),
-                    fit: BoxFit.cover,
-                  ),
+                ),
+                child: const Icon(
+                  Icons.family_restroom,
+                  size: 75,
+                  color: Color(0xFF38A3A5),
                 ),
               ),
               const SizedBox(height: 24),

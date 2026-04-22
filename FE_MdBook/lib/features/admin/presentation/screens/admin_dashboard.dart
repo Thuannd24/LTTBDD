@@ -44,6 +44,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       if (u.isDoctor) dr++;
       if (u.isUser) pt++;
     }
+    if (!mounted) return;
     setState(() {
       _doctorCount = dr;
       _patientCount = pt;

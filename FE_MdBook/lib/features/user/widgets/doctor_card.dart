@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/doctor_profile_model.dart';
-import '../../../../core/models/user_model.dart';
-import '../../../auth/data/auth_service.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
+import 'package:tbdd/core/models/user_model.dart';
+import 'package:tbdd/features/auth/data/auth_service.dart';
 
 class DoctorCard extends StatelessWidget {
   final DoctorProfile doctor;
