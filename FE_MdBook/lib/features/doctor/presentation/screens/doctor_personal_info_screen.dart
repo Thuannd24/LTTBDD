@@ -46,7 +46,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         _firstNameCtrl.text = user.firstName ?? '';
         _lastNameCtrl.text = user.lastName ?? '';
         _phoneCtrl.text = user.phone ?? '';
-        _emailCtrl.text = user.email ?? '';
+        _emailCtrl.text = user.email;
         _addressCtrl.text = user.address ?? '';
         _bloodTypeCtrl.text = user.bloodType ?? '';
         _isLoading = false;

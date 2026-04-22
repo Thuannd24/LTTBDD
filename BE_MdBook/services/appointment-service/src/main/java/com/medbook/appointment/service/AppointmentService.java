@@ -185,7 +185,8 @@ public class AppointmentService {
         List<AppointmentResourceReservation> reservations = appointmentResourceReservationRepository
                 .findByAppointmentId(appointmentId)
                 .stream()
-                .filter(reservation -> reservation.getStatus() == AppointmentResourceReservation.ReservationStatus.RESERVED)
+                .filter(reservation -> reservation
+                        .getStatus() == AppointmentResourceReservation.ReservationStatus.RESERVED)
                 .sorted(Comparator.comparingInt(this::releasePriority))
                 .toList();
 
@@ -256,7 +257,8 @@ public class AppointmentService {
             throw new AppointmentValidationException("Doctor schedule does not belong to the selected doctor");
         }
         if (!scheduleInfo.available()) {
-            throw new DoctorScheduleNotFoundException("Doctor schedule is not available: " + request.getDoctorScheduleId());
+            throw new DoctorScheduleNotFoundException(
+                    "Doctor schedule is not available: " + request.getDoctorScheduleId());
         }
 
         if (stepResponse != null) {
@@ -315,7 +317,8 @@ public class AppointmentService {
             throw new SlotNotFoundException("Equipment slot target type must be EQUIPMENT");
         }
         if (!equipmentSlot.available()) {
-            throw new AppointmentValidationException("Equipment slot is not available: " + request.getEquipmentSlotId());
+            throw new AppointmentValidationException(
+                    "Equipment slot is not available: " + request.getEquipmentSlotId());
         }
 
         EquipmentInfo equipmentInfo = slotServiceClient.getEquipmentById(equipmentSlot.targetId());
@@ -373,14 +376,17 @@ public class AppointmentService {
         try {
             doctorServiceClient.releaseSchedule(scheduleId, appointmentId);
         } catch (RuntimeException ex) {
-            log.warn("Failed to rollback doctor schedule {} for appointment {}: {}", scheduleId, appointmentId, ex.getMessage());
+            log.warn("Failed to rollback doctor schedule {} for appointment {}: {}", scheduleId, appointmentId,
+                    ex.getMessage());
         }
     }
 
     private void releaseReservation(Appointment appointment, AppointmentResourceReservation reservation) {
         switch (reservation.getTargetType()) {
-            case EQUIPMENT, ROOM -> slotServiceClient.releaseSlot(Long.valueOf(reservation.getSlotId()), appointment.getId());
-            case DOCTOR -> doctorServiceClient.releaseSchedule(Long.valueOf(reservation.getSlotId()), appointment.getId());
+            case EQUIPMENT, ROOM ->
+                slotServiceClient.releaseSlot(Long.valueOf(reservation.getSlotId()), appointment.getId());
+            case DOCTOR ->
+                doctorServiceClient.releaseSchedule(Long.valueOf(reservation.getSlotId()), appointment.getId());
         }
     }
 

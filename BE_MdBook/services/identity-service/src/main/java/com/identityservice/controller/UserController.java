@@ -63,4 +63,12 @@ public class UserController {
                 .result(userService.getMyInfo())
                 .build();
     }
+
+    @PostMapping("/change-password")
+    ApiResponse<String> changePassword(@RequestBody @jakarta.validation.Valid com.identityservice.dto.request.PasswordChangeRequest request) {
+        userService.changePassword(request);
+        return ApiResponse.<String>builder()
+                .result("Password has been changed")
+                .build();
+    }
 }
