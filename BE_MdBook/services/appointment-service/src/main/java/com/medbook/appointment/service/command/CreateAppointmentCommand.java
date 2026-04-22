@@ -1,4 +1,4 @@
-package com.medbook.appointment.dto.response;
+package com.medbook.appointment.service.command;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -12,9 +12,13 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CreateAppointmentResponse {
-    
-    String appointmentId;
+public class CreateAppointmentCommand {
 
-    String status;
+    String packageId;
+    String doctorId;
+    Long doctorScheduleId;
+    Long roomSlotId;
+    Long equipmentSlotId;
+    String note;
+    String facilityId;
 }

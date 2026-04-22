@@ -4,15 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medbook.appointment.configuration.CustomJwtDecoder;
 import com.medbook.appointment.configuration.SecurityConfig;
 import com.medbook.appointment.dto.request.CancelAppointmentRequest;
-import com.medbook.appointment.dto.request.CreateAppointmentRequest;
 import com.medbook.appointment.dto.response.AppointmentResponse;
 import com.medbook.appointment.dto.response.AppointmentStatusResponse;
-import com.medbook.appointment.dto.response.CreateAppointmentResponse;
 import com.medbook.appointment.exception.AppointmentAccessDeniedException;
 import com.medbook.appointment.exception.AppointmentNotFoundException;
 import com.medbook.appointment.exception.GlobalExceptionHandler;
 import com.medbook.appointment.service.AppointmentService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -49,63 +46,6 @@ class AppointmentControllerIntegrationTest {
 
     @MockBean
     private CustomJwtDecoder customJwtDecoder;
-
-    private CreateAppointmentRequest validRequest;
-
-    @BeforeEach
-    void setUp() {
-        validRequest = CreateAppointmentRequest.builder()
-                .packageId("pkg-001")
-                .packageStepId("step-001")
-                .doctorId("doctor-456")
-                .doctorScheduleId(1L)
-                .roomSlotId(2L)
-                .equipmentSlotId(3L)
-                .note("Test appointment")
-                .facilityId("facility-001")
-                .build();
-    }
-
-    @Test
-    @WithMockUser(username = "user-123", roles = "USER")
-    void createAppointment_success() throws Exception {
-        when(appointmentService.createAppointment(any(), eq("user-123"))).thenReturn(CreateAppointmentResponse.builder()
-                .appointmentId("apt-001")
-                .status("CONFIRMED")
-                .build());
-
-        mockMvc.perform(post("/appointments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest))
-                        .with(csrf()))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.result.appointmentId").value("apt-001"))
-                .andExpect(jsonPath("$.result.status").value("CONFIRMED"));
-    }
-
-    @Test
-    void createAppointment_unauthenticated() throws Exception {
-        mockMvc.perform(post("/appointments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest))
-                        .with(csrf()))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @WithMockUser(username = "user-123", roles = "USER")
-    void createAppointment_invalidRequest() throws Exception {
-        CreateAppointmentRequest invalidRequest = CreateAppointmentRequest.builder()
-                .packageId("")
-                .doctorId("doctor-456")
-                .build();
-
-        mockMvc.perform(post("/appointments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest))
-                        .with(csrf()))
-                .andExpect(status().isBadRequest());
-    }
 
     @Test
     @WithMockUser(username = "user-123", roles = "USER")
@@ -258,6 +198,28 @@ class AppointmentControllerIntegrationTest {
         mockMvc.perform(post("/appointments/apt-001/cancel")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(cancelRequest))
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "doctor-456", roles = "DOCTOR")
+    void completeAppointment_success() throws Exception {
+        when(appointmentService.completeAppointment("apt-001")).thenReturn(AppointmentResponse.builder()
+                .id("apt-001")
+                .status("COMPLETED")
+                .build());
+
+        mockMvc.perform(post("/appointments/apt-001/complete")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.status").value("COMPLETED"));
+    }
+
+    @Test
+    @WithMockUser(username = "user-123", roles = "USER")
+    void completeAppointment_forbidden() throws Exception {
+        mockMvc.perform(post("/appointments/apt-001/complete")
                         .with(csrf()))
                 .andExpect(status().isForbidden());
     }

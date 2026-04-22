@@ -13,6 +13,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             AppointmentNotFoundException.class,
+            AppointmentRequestNotFoundException.class,
             DoctorNotFoundException.class,
             RoomNotFoundException.class,
             EquipmentNotFoundException.class,

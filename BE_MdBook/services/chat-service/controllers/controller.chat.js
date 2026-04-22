@@ -50,25 +50,26 @@ async function getConversations(req, res, next) {
 async function createConversation(req, res, next) {
   try {
     const userId = req.userId;
-    const { otherUserId } = req.body;
+    const { targetUserId } = req.body;
     const correlationId = req.correlationId;
 
-    if (!otherUserId) {
+    if (!targetUserId) {
       return res.status(400).json({
         status: 400,
-        message: 'otherUserId is required',
+        message: 'targetUserId is required',
       });
     }
 
     logger.info('conversation_create_requested', {
       correlationId,
       userId,
-      otherUserId,
+      targetUserId,
     });
 
     const conversation = await createOrGetConversation({
       currentUserId: userId,
-      otherUserId,
+      currentUserRoles: req.roles || [],
+      targetUserId,
       correlationId,
     });
 

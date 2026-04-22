@@ -14,25 +14,13 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CreateAppointmentRequest {
+public class AppointmentRequestConfirmRequest {
 
-    @NotBlank(message = "PACKAGE_ID_BLANK")
-    String packageId;
-
-    String packageStepId;
-
-    @NotBlank(message = "DOCTOR_ID_BLANK")
-    String doctorId;
-
-    @NotNull(message = "DOCTOR_SCHEDULE_ID_NULL")
-    Long doctorScheduleId;
+    @NotBlank(message = "FACILITY_ID_BLANK")
+    String facilityId;
 
     @NotNull(message = "ROOM_SLOT_ID_NULL")
     Long roomSlotId;
 
     Long equipmentSlotId;
-
-    String note;
-
-    String facilityId;
 }

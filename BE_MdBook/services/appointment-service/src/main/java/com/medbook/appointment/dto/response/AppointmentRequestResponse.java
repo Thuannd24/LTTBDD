@@ -1,5 +1,6 @@
 package com.medbook.appointment.dto.response;
 
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,38 +8,27 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AppointmentResponse {
-    
-    String id;
+public class AppointmentRequestResponse {
 
+    String id;
     String patientUserId;
-    
     String doctorId;
-    
     Long doctorScheduleId;
-    
-    String facilityId;
-    
     String packageId;
-    
+    String facilityId;
+    Long roomSlotId;
+    Long equipmentSlotId;
     String status;
-    
     String note;
-    
-    String cancelReason;
-    
-    String failureCode;
-    
-    String failureMessage;
-    
+    String appointmentId;
+    String processedBy;
+    LocalDateTime processedAt;
+    String rejectionReason;
     LocalDateTime createdAt;
-    
     LocalDateTime updatedAt;
 }

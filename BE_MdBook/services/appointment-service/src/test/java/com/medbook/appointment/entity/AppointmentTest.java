@@ -15,7 +15,6 @@ class AppointmentTest {
                 .doctorScheduleId(101L)
                 .facilityId("clinic-1")
                 .packageId("pkg-001")
-                .packageStepId("step-ultrasound")
                 .status(Appointment.AppointmentStatus.CONFIRMED)
                 .note("Follow-up visit")
                 .build();
@@ -29,7 +28,7 @@ class AppointmentTest {
     @Test
     void testAppointmentStatusEnum() {
         assertNotNull(Appointment.AppointmentStatus.CONFIRMED);
-        assertNotNull(Appointment.AppointmentStatus.BOOKING_FAILED);
         assertNotNull(Appointment.AppointmentStatus.CANCELLED);
+        assertNotNull(Appointment.AppointmentStatus.COMPLETED);
     }
 }
