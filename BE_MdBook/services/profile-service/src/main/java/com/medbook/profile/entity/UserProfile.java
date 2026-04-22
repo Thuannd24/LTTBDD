@@ -44,6 +44,15 @@ public class UserProfile {
     String emergencyContactName;
     String emergencyContactPhone;
     String insuranceNumber;
+    String bloodType;
+    Double weight;
+    Double height;
+    @Column(columnDefinition = "TEXT")
+    String medicalHistory;
+    @Column(columnDefinition = "TEXT")
+    String allergies;
+    @Column(columnDefinition = "TEXT")
+    String aiSummary;
 
     @Builder.Default
     Boolean active = true;

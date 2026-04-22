@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../features/auth/data/auth_service.dart';
 import '../../../../features/auth/presentation/screens/login_screen.dart';
 import '../../../../core/models/user_model.dart';
@@ -20,11 +21,11 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<Map<String, dynamic>> _menuItems = [
-    {'icon': Icons.dashboard_rounded, 'label': 'Tổng quan'},
-    {'icon': Icons.calendar_month_rounded, 'label': 'Lịch làm việc'},
-    {'icon': Icons.medical_services_rounded, 'label': 'Hồ sơ chuyên môn'},
-    {'icon': Icons.person_rounded, 'label': 'Thông tin cá nhân'},
-    {'icon': Icons.chat_rounded, 'label': 'Tin nhắn'},
+    {'icon': Icons.dashboard_rounded, 'label': AppStrings.overview},
+    {'icon': Icons.calendar_month_rounded, 'label': AppStrings.workingSchedule},
+    {'icon': Icons.medical_services_rounded, 'label': AppStrings.professionalProfile},
+    {'icon': Icons.person_rounded, 'label': AppStrings.personalInfo},
+    {'icon': Icons.chat_rounded, 'label': AppStrings.messages},
   ];
 
   @override
@@ -52,7 +53,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                         DoctorScheduleScreen(doctorId: doctorId),
                         DoctorProfileEditScreen(doctorId: doctorId),
                         DoctorPersonalInfoScreen(user: widget.user),
-                        const Center(child: Text('Tin nhắn (Sắp ra mắt)')),
+                        const Center(child: Text(AppStrings.messagesComingSoon)),
                       ],
                     ),
                   ),
@@ -127,7 +128,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
         ),
         const SizedBox(width: 12),
         const Text(
-          'MEDBOOK',
+          AppStrings.medbook,
           style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1.2),
         ),
       ],
@@ -153,9 +154,14 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
         },
         child: Row(
           children: [
-            const CircleAvatar(
-              backgroundColor: Color(0xFF38A3A5),
-              child: Icon(Icons.person, color: Colors.white, size: 20),
+            CircleAvatar(
+              backgroundColor: const Color(0xFF38A3A5),
+              backgroundImage: widget.user?.avatar != null && widget.user!.avatar!.isNotEmpty
+                  ? NetworkImage(widget.user!.avatar!)
+                  : null,
+              child: widget.user?.avatar == null || widget.user!.avatar!.isEmpty
+                  ? const Icon(Icons.person, color: Colors.white, size: 20)
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -164,7 +170,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(widget.user?.username ?? 'Doctor', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                  const Text('Bác sĩ chuyên khoa', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                  const Text(AppStrings.specialistDoctor, style: TextStyle(color: Colors.grey, fontSize: 11)),
                 ],
               ),
             ),
@@ -229,7 +235,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hôm nay có gì mới?',
+            AppStrings.whatsNewToday,
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey[800]),
           ),
           const SizedBox(height: 24),
@@ -244,10 +250,10 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                 mainAxisSpacing: 16,
                 childAspectRatio: 2.2,
                 children: [
-                  _buildStatsCard('Lịch hẹn', '12', Icons.calendar_today_rounded, Colors.blue, '+3 mới'),
-                  _buildStatsCard('Bệnh nhân', '45', Icons.group_rounded, Colors.teal, '+5 mới'),
-                  _buildStatsCard('Đánh giá', '4.8', Icons.star_rounded, Colors.orange, '120 lượt'),
-                  _buildStatsCard('Thu nhập', '2.5M', Icons.payments_rounded, Colors.purple, 'Tháng này'),
+                  _buildStatsCard(AppStrings.appointmentStat, '12', Icons.calendar_today_rounded, Colors.blue, AppStrings.threeNew),
+                  _buildStatsCard(AppStrings.patientStat, '45', Icons.group_rounded, Colors.teal, AppStrings.fiveNew),
+                  _buildStatsCard(AppStrings.reviewStat, '4.8', Icons.star_rounded, Colors.orange, AppStrings.oneTwentyTurns),
+                  _buildStatsCard(AppStrings.incomeStat, '2.5M', Icons.payments_rounded, Colors.purple, AppStrings.thisMonth),
                 ],
               );
             },
@@ -312,12 +318,12 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Lịch khám gần đây', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              TextButton(onPressed: () {}, child: const Text('Xem tất cả')),
+              const Text(AppStrings.recentAppointments, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              TextButton(onPressed: () {}, child: const Text(AppStrings.viewAll)),
             ],
           ),
           const SizedBox(height: 16),
-          const Center(child: Text('Chưa có lịch hẹn nào cho hôm nay', style: TextStyle(color: Colors.grey))),
+          const Center(child: Text(AppStrings.noAppointmentsToday, style: TextStyle(color: Colors.grey))),
         ],
       ),
     );
@@ -330,9 +336,9 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Cấu hình ca trực', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(AppStrings.scheduleShiftConfig, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          const Text('Bạn chưa thiết lập ca trực định kỳ.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+          const Text(AppStrings.noRecurringShiftsSet, style: TextStyle(color: Colors.grey, fontSize: 13)),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -342,7 +348,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                 backgroundColor: const Color(0xFF38A3A5),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Thiết lập ngay', style: TextStyle(color: Colors.white)),
+              child: const Text(AppStrings.setupNow, style: TextStyle(color: Colors.white)),
             ),
           )
         ],

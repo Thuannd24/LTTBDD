@@ -15,6 +15,8 @@ import 'package:tbdd/core/models/user_model.dart';
 import 'package:tbdd/core/models/specialty_model.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
 
+import 'package:tbdd/features/user/screens/patient_medical_record_screen.dart';
+
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
 
@@ -27,7 +29,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
   final List<Widget> _pages = [
     const HomeContent(),
-    const Center(child: Text('Hồ sơ y tế')),
+    const PatientMedicalRecordScreen(),
     const AppointmentListScreen(),
     const Center(child: Text('Thông báo')),
     const ProfileScreen(),
@@ -283,7 +285,7 @@ class _HomeContentState extends State<HomeContent> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SpecialtyDetailScreen(specialtyName: s.name, specialtyId: s.id),
+                      builder: (context) => SpecialtyDetailScreen(specialty: s),
                     ),
                   );
                 },
@@ -301,9 +303,11 @@ class _HomeContentState extends State<HomeContent> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(color: const Color(0xFF38A3A5).withOpacity(0.1), shape: BoxShape.circle),
-                        child: const Icon(Icons.medical_services_rounded, color: Color(0xFF38A3A5), size: 26),
+                        child: s.image != null 
+                          ? CircleAvatar(radius: 26, backgroundImage: NetworkImage(s.image!))
+                          : const Icon(Icons.medical_services_rounded, color: Color(0xFF38A3A5), size: 26),
                       ),
                       const SizedBox(height: 12),
                       Padding(
@@ -384,8 +388,10 @@ class _HomeContentState extends State<HomeContent> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFE0F2F1),
                         borderRadius: BorderRadius.circular(18),
-                        image: const DecorationImage(
-                          image: NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
+                        image: DecorationImage(
+                          image: doctor.avatar != null && doctor.avatar!.isNotEmpty
+                            ? NetworkImage(doctor.avatar!)
+                            : const NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
                           fit: BoxFit.cover
                         ),
                       ),
@@ -400,7 +406,7 @@ class _HomeContentState extends State<HomeContent> {
                             style: const TextStyle(color: Color(0xFF38A3A5), fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            doctor.userId, // Should display name eventually
+                            doctor.fullName,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF2D3142)),
                           ),
                           Text(

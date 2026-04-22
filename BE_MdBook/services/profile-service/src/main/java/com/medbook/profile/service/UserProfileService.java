@@ -21,4 +21,6 @@ public interface UserProfileService {
     UserProfileResponse updateMyAvatar(String userId, org.springframework.web.multipart.MultipartFile file);
 
     ProfileExistenceResponse checkProfileExists(String userId);
+
+    UserProfileResponse generateAiSummary(String userId);
 }

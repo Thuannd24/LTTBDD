@@ -28,12 +28,18 @@ public class UserProfileServiceImpl implements UserProfileService {
     UserProfileRepository userProfileRepository;
     UserProfileMapper userProfileMapper;
     UploadService uploadService;
+    AIService aiService;
 
     @Override
     public UserProfileResponse getMyProfile(String userId) {
         UserProfile profile = userProfileRepository
                 .findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND));
+                .orElseGet(() -> {
+                    UserProfile newProfile = UserProfile.builder()
+                            .userId(userId)
+                            .build();
+                    return userProfileRepository.save(newProfile);
+                });
         return userProfileMapper.toUserProfileResponse(profile);
     }
 
@@ -42,9 +48,18 @@ public class UserProfileServiceImpl implements UserProfileService {
     public UserProfileResponse updateMyProfile(String userId, UpdateMyProfileRequest request) {
         UserProfile profile = userProfileRepository
                 .findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND));
+                .orElseGet(() -> UserProfile.builder()
+                        .userId(userId)
+                        .build());
 
         userProfileMapper.updateUserProfile(profile, request);
+
+        // Generate AI summary if there's medical history or allergies
+        if (request.getMedicalHistory() != null || request.getAllergies() != null) {
+            String summary = aiService.generateSummary(profile.getMedicalHistory(), profile.getAllergies());
+            profile.setAiSummary(summary);
+        }
+
         profile = userProfileRepository.save(profile);
         return userProfileMapper.toUserProfileResponse(profile);
     }
@@ -54,7 +69,9 @@ public class UserProfileServiceImpl implements UserProfileService {
     public UserProfileResponse updateMyAvatar(String userId, org.springframework.web.multipart.MultipartFile file) {
         UserProfile profile = userProfileRepository
                 .findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND));
+                .orElseGet(() -> UserProfile.builder()
+                        .userId(userId)
+                        .build());
 
         try {
             String imageUrl = uploadService.uploadImage(file, "medbook/avatars");
@@ -103,5 +120,18 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .exists(exists)
                 .userId(userId)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public UserProfileResponse generateAiSummary(String userId) {
+        UserProfile profile = userProfileRepository
+                .findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND));
+
+        String summary = aiService.generateSummary(profile.getMedicalHistory(), profile.getAllergies());
+        profile.setAiSummary(summary);
+        
+        return userProfileMapper.toUserProfileResponse(userProfileRepository.save(profile));
     }
 }

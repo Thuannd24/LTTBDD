@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:tbdd/features/auth/data/auth_service.dart';
 import 'package:tbdd/core/models/user_model.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class UserProfileEditScreen extends StatefulWidget {
   final UserProfile user;
-  const UserProfileEditScreen({super.key, required this.user});
+  final bool isSelf;
+  const UserProfileEditScreen({super.key, required this.user, this.isSelf = false});
 
   @override
   State<UserProfileEditScreen> createState() => _UserProfileEditScreenState();
@@ -18,16 +21,62 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
   late TextEditingController _lastNameCtrl;
   late TextEditingController _phoneCtrl;
   late TextEditingController _addressCtrl;
+  late TextEditingController _weightCtrl;
+  late TextEditingController _heightCtrl;
+  late TextEditingController _bloodTypeCtrl;
+  late TextEditingController _medicalHistoryCtrl;
+  late TextEditingController _allergiesCtrl;
 
   bool _isSaving = false;
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
+  bool _isMe = false;
 
   @override
   void initState() {
     super.initState();
+    _isMe = widget.isSelf;
     _firstNameCtrl = TextEditingController(text: widget.user.firstName);
     _lastNameCtrl = TextEditingController(text: widget.user.lastName);
     _phoneCtrl = TextEditingController(text: widget.user.phone);
     _addressCtrl = TextEditingController(text: widget.user.address);
+    _weightCtrl = TextEditingController(text: widget.user.weight?.toString() ?? '');
+    _heightCtrl = TextEditingController(text: widget.user.height?.toString() ?? '');
+    _bloodTypeCtrl = TextEditingController(text: widget.user.bloodType ?? '');
+    _medicalHistoryCtrl = TextEditingController(text: widget.user.medicalHistory ?? '');
+    _allergiesCtrl = TextEditingController(text: widget.user.allergies ?? '');
+    if (!_isMe) {
+      _checkIsMe();
+    }
+  }
+
+  Future<void> _checkIsMe() async {
+    final me = await _authService.getMyInfo();
+    if (mounted && me != null) {
+      setState(() {
+        _isMe = me.userId == widget.user.userId;
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _imageFile = File(image.path);
+      });
+      // Optionally upload immediately or wait for save
+      _uploadAvatar(image.path);
+    }
+  }
+  
+  Future<void> _uploadAvatar(String path) async {
+    final result = await _authService.updateAvatar(path);
+    if (mounted) {
+       ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message']), backgroundColor: result['success'] ? Colors.green : Colors.red),
+       );
+    }
   }
 
   @override
@@ -49,9 +98,17 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
         'lastName': _lastNameCtrl.text,
         'phone': _phoneCtrl.text,
         'address': _addressCtrl.text,
+        'weight': double.tryParse(_weightCtrl.text),
+        'height': double.tryParse(_heightCtrl.text),
+        'bloodType': _bloodTypeCtrl.text,
+        'medicalHistory': _medicalHistoryCtrl.text,
+        'allergies': _allergiesCtrl.text,
       };
 
-      final result = await _authService.updateMyInfo(widget.user.id, payload);
+      // If it's me, use updateMyInfo, otherwise (Doctor/Admin) use updateUserInfo
+      final result = _isMe 
+          ? await _authService.updateMyInfo(widget.user.userId, payload)
+          : await _authService.updateUserInfo(widget.user.userId, payload);
       if (mounted) {
         if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -94,6 +151,32 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
           key: _formKey,
           child: Column(
             children: [
+              GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.grey[200],
+                      backgroundImage: _imageFile != null 
+                        ? FileImage(_imageFile!) 
+                        : (widget.user.avatar != null ? NetworkImage(widget.user.avatar!) : null) as ImageProvider?,
+                      child: widget.user.avatar == null && _imageFile == null 
+                        ? const Icon(Icons.camera_alt, size: 30, color: Colors.grey) 
+                        : null,
+                    ),
+                    Positioned(
+                      bottom: 0, right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(color: Color(0xFF38A3A5), shape: BoxShape.circle),
+                        child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
               _buildTextField('Họ', _firstNameCtrl),
               const SizedBox(height: 16),
               _buildTextField('Tên', _lastNameCtrl),
@@ -101,6 +184,23 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
               _buildTextField('Số điện thoại', _phoneCtrl, keyboardType: TextInputType.phone),
               const SizedBox(height: 16),
               _buildTextField('Địa chỉ', _addressCtrl, maxLines: 2),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildTextField('Cân nặng (kg)', _weightCtrl, keyboardType: TextInputType.number)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildTextField('Chiều cao (cm)', _heightCtrl, keyboardType: TextInputType.number)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildTextField('Nhóm máu', _bloodTypeCtrl),
+              const SizedBox(height: 16),
+              const Divider(),
+              const Text('Thông tin sức khỏe', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              _buildTextField('Tiền sử bệnh lý', _medicalHistoryCtrl, maxLines: 3),
+              const SizedBox(height: 16),
+              _buildTextField('Dị ứng', _allergiesCtrl, maxLines: 2),
             ],
           ),
         ),

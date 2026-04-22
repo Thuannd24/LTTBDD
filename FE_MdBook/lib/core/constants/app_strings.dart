@@ -57,22 +57,29 @@ class AppStrings {
   // Specialty List Screen
   static const String searchSpecialtyHint = 'Tìm chuyên khoa...';
 
-  // Checkout Screen
-  static const String checkoutTitle = 'Hoàn tất đặt lịch';
-  static const String checkoutSubtitle = 'Xác nhận chi tiết cuộc hẹn và chọn phương thức thanh toán để bảo mật lịch khám của bạn.';
-  static const String paymentMethod = 'Phương thức thanh toán';
-  static const String creditCard = 'Thẻ tín dụng hoặc Thẻ ghi nợ';
-  static const String digitalWallet = 'Ví điện tử';
-  static const String payAtClinic = 'Thanh toán tại phòng khám';
-  static const String billingSameAsProfile = 'Địa chỉ thanh toán giống hồ sơ';
-  static const String appointmentSummary = 'Tóm tắt cuộc hẹn';
-  static const String consultationFee = 'Phí tư vấn';
-  static const String adminFee = 'Phí quản lý';
-  static const String serviceTax = 'Thuế dịch vụ (8%)';
-  static const String totalAmount = 'TỔNG CỘNG';
-  static const String promoCode = 'Mã giảm giá';
-  static const String apply = 'Áp dụng';
-  static const String confirmAndPay = 'Xác nhận và Thanh toán';
+  // Doctor Dashboard
+  static const String overview = 'Tổng quan';
+  static const String workingSchedule = 'Lịch làm việc';
+  static const String professionalProfile = 'Hồ sơ chuyên môn';
+  static const String personalInfo = 'Thông tin cá nhân';
+  static const String messages = 'Tin nhắn';
+  static const String messagesComingSoon = 'Tin nhắn (Sắp ra mắt)';
+  static const String medbook = 'MEDBOOK';
+  static const String specialistDoctor = 'Bác sĩ chuyên khoa';
+  static const String whatsNewToday = 'Hôm nay có gì mới?';
+  static const String appointmentStat = 'Lịch hẹn';
+  static const String patientStat = 'Bệnh nhân';
+  static const String reviewStat = 'Đánh giá';
+  static const String incomeStat = 'Thu nhập';
+  static const String threeNew = '+3 mới';
+  static const String fiveNew = '+5 mới';
+  static const String oneTwentyTurns = '120 lượt';
+  static const String thisMonth = 'Tháng này';
+  static const String recentAppointments = 'Lịch khám gần đây';
+  static const String noAppointmentsToday = 'Chưa có lịch hẹn nào cho hôm nay';
+  static const String scheduleShiftConfig = 'Cấu hình ca trực';
+  static const String noRecurringShiftsSet = 'Bạn chưa thiết lập ca trực định kỳ.';
+  static const String setupNow = 'Thiết lập ngay';
 
   // Navigation
   static const String navHome = 'Trang chủ';

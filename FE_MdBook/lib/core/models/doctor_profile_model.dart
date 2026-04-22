@@ -11,6 +11,9 @@ class DoctorProfile {
   String? services;
   String? qualification;
   String? status;
+  String? firstName;
+  String? lastName;
+  String? avatar;
   DateTime? createdAt;
   DateTime? updatedAt;
 
@@ -27,6 +30,9 @@ class DoctorProfile {
     this.services,
     this.qualification,
     this.status,
+    this.firstName,
+    this.lastName,
+    this.avatar,
     this.createdAt,
     this.updatedAt,
   });
@@ -45,10 +51,15 @@ class DoctorProfile {
       services: json['services'],
       qualification: json['qualification'],
       status: json['status'],
+      firstName: json['firstName'],
+      lastName: json['lastName'],
+      avatar: json['avatar'],
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
       updatedAt: json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null,
     );
   }
+
+  String get fullName => '${firstName ?? ""} ${lastName ?? ""}'.trim().isEmpty ? 'Bác sĩ' : '${firstName ?? ""} ${lastName ?? ""}'.trim();
 
   Map<String, dynamic> toJson() {
     return {

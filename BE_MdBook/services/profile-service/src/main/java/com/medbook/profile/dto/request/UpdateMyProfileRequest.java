@@ -46,4 +46,11 @@ public class UpdateMyProfileRequest {
 
     @Size(max = 50, message = "INVALID_INSURANCE_NUMBER")
     String insuranceNumber;
+
+    String bloodType;
+    Double weight;
+    Double height;
+    String medicalHistory;
+    String allergies;
+    String aiSummary;
 }

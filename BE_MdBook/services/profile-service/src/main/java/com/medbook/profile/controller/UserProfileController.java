@@ -56,11 +56,30 @@ public class UserProfileController {
                 .build();
     }
 
+    @PostMapping("/me/ai-summary")
+    @Operation(summary = "Generate AI summary for current user")
+    public ApiResponse<UserProfileResponse> generateAiSummary() {
+        return ApiResponse.<UserProfileResponse>builder()
+                .result(userProfileService.generateAiSummary(getCurrentUserId()))
+                .build();
+    }
+
     @GetMapping("/{userId}")
     @Operation(summary = "Get user profile by userId")
     public ApiResponse<UserProfileResponse> getProfileByUserId(@PathVariable String userId) {
         return ApiResponse.<UserProfileResponse>builder()
                 .result(userProfileService.getProfileByUserId(userId))
+                .build();
+    }
+
+    @PutMapping("/{userId}")
+    @Operation(summary = "Update user profile by userId (Doctor/Admin only)")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
+    public ApiResponse<UserProfileResponse> updateProfileByUserId(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateMyProfileRequest request) {
+        return ApiResponse.<UserProfileResponse>builder()
+                .result(userProfileService.updateMyProfile(userId, request))
                 .build();
     }
 

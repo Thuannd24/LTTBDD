@@ -76,8 +76,10 @@ class DoctorDetailScreen extends StatelessWidget {
                 width: 100, height: 100,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  image: const DecorationImage(
-                    image: NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
+                  image: DecorationImage(
+                    image: doctor.avatar != null && doctor.avatar!.isNotEmpty
+                      ? NetworkImage(doctor.avatar!)
+                      : const NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
                     fit: BoxFit.cover,
                   ),
                   border: Border.all(color: const Color(0xFFE0F2F1), width: 4),
@@ -98,7 +100,7 @@ class DoctorDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      doctor.userId,
+                      doctor.fullName,
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
                     ),
                     Text(
