@@ -70,6 +70,26 @@ class SpecialtyDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (specialty.image != null && specialty.image!.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              width: double.infinity,
+              height: 200,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                image: DecorationImage(
+                  image: NetworkImage(specialty.image!),
+                  fit: BoxFit.cover,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+            ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -90,16 +110,6 @@ class SpecialtyDetailScreen extends StatelessWidget {
           Text(
             specialty.overview ?? 'Đang cập nhật...',
             style: const TextStyle(fontSize: 15, color: Colors.black87, height: 1.6),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Chuyên khoa Tim mạch của Vinmec cung cấp dịch vụ điều trị, chăm sóc bệnh lý tim mạch cho bệnh nhân trong nước và quốc tế theo các tiêu chuẩn quốc tế. Tùy theo tình trạng bệnh lý, người bệnh sẽ được thăm khám và điều trị tại các đơn vị tim mạch chuyên sâu: Nội tim mạch, can thiệp tim mạch và ngoại tim mạch.',
-            style: TextStyle(fontSize: 15, color: Colors.black87, height: 1.6),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Nhằm đạt kết quả tối ưu cho từng người bệnh, các bác sĩ Vinmec điều trị bệnh lý tim mạch theo phương thức cá thể hóa bằng các phương pháp nội khoa, phẫu thuật, thông tim can thiệp và nhiều kỹ thuật cao cấp khác.',
-            style: TextStyle(fontSize: 15, color: Colors.black87, height: 1.6),
           ),
         ],
       ),
@@ -177,7 +187,7 @@ class SpecialtyDetailScreen extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 1.5,
+              childAspectRatio: 1.3,
             ),
             itemCount: tech.length,
             itemBuilder: (context, index) {
@@ -191,14 +201,14 @@ class SpecialtyDetailScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.settings_suggest_rounded, color: Color(0xFF38A3A5), size: 24),
+                    const Icon(Icons.settings_suggest_rounded, color: Color(0xFF38A3A5), size: 28),
                     const SizedBox(height: 8),
                     Text(
                       tech[index],
                       textAlign: TextAlign.center,
-                      maxLines: 2,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF4A4E69)),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4A4E69)),
                     ),
                   ],
                 ),

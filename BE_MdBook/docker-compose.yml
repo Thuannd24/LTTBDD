@@ -204,6 +204,8 @@ services:
       - POSTGRES_DB=doctor_db
       - POSTGRES_USER=${DB_USER:-admin}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    volumes:
+      - ./scripts/db/init-doctor.sql:/docker-entrypoint-initdb.d/init-doctor.sql
     networks:
       - app-network
 
