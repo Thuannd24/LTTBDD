@@ -9,6 +9,8 @@ import 'package:tbdd/features/doctor/presentation/screens/doctor_profile_edit_sc
 import 'package:tbdd/features/doctor/presentation/screens/doctor_schedule_screen.dart';
 import 'package:tbdd/features/doctor/presentation/screens/doctor_personal_info_screen.dart';
 
+import 'package:tbdd/features/chat/presentation/screens/chat_list_screen.dart';
+
 class DoctorDashboard extends StatefulWidget {
   final UserProfile? user;
   const DoctorDashboard({super.key, this.user});
@@ -54,7 +56,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   @override
   Widget build(BuildContext context) {
     bool isMobile = MediaQuery.of(context).size.width < 900;
-    String doctorId = _doctorInfo?.id ?? 'doctor_id';
+    String doctorId = _doctorInfo?.userId ?? widget.user?.userId ?? '';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -76,7 +78,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                         DoctorScheduleScreen(doctorId: doctorId),
                         DoctorProfileEditScreen(doctorId: doctorId),
                         DoctorPersonalInfoScreen(user: widget.user),
-                        const Center(child: Text(AppStrings.messagesComingSoon)),
+                        const ChatListScreen(isEmbedded: true),
                       ],
                     ),
                   ),

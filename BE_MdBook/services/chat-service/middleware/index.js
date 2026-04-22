@@ -7,6 +7,7 @@ module.exports = async function authMiddleware(req, res, next) {
     const authContext = await verifyAccessToken(token, req.correlationId);
     req.auth = authContext;
     req.userId = authContext.userId;
+    req.roles = authContext.roles || [];
     next();
   } catch (error) {
     next(error);

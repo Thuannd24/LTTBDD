@@ -24,14 +24,12 @@ import com.medbook.appointment.dto.response.CreateAppointmentResponse;
 import com.medbook.appointment.dto.response.ExamPackageResponse;
 import com.medbook.appointment.dto.response.ExamPackageStepResponse;
 import com.medbook.appointment.entity.Appointment;
-import com.medbook.appointment.entity.AppointmentResourceReservation;
 import com.medbook.appointment.exception.AppointmentAccessDeniedException;
 import com.medbook.appointment.exception.AppointmentNotFoundException;
 import com.medbook.appointment.exception.AppointmentValidationException;
 import com.medbook.appointment.exception.DoctorScheduleNotFoundException;
 import com.medbook.appointment.mapper.AppointmentMapper;
 import com.medbook.appointment.repository.AppointmentRepository;
-import com.medbook.appointment.repository.AppointmentResourceReservationRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,8 +63,6 @@ class AppointmentServiceTest {
     @Mock
     private SlotServiceClient slotServiceClient;
 
-    @Mock
-    private AppointmentResourceReservationRepository appointmentResourceReservationRepository;
 
     @InjectMocks
     private AppointmentService appointmentService;
@@ -127,10 +123,6 @@ class AppointmentServiceTest {
             }
             return appointment;
         });
-        when(appointmentResourceReservationRepository.findByAppointmentIdAndTargetTypeAndSlotId(any(), any(), any()))
-                .thenReturn(Optional.empty());
-        when(appointmentResourceReservationRepository.save(any(AppointmentResourceReservation.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
         CreateAppointmentResponse response = appointmentService.createAppointment(validRequest, currentUserId);
 
@@ -291,18 +283,13 @@ class AppointmentServiceTest {
                 .patientUserId("user-123")
                 .doctorId("doctor-123")
                 .doctorScheduleId(1L)
+                .roomSlotId(2L)
+                .equipmentSlotId(3L)
                 .status(Appointment.AppointmentStatus.CONFIRMED)
                 .build();
 
         when(appointmentRepository.findById("apt-001")).thenReturn(Optional.of(confirmedAppointment));
-        when(appointmentResourceReservationRepository.findByAppointmentId("apt-001")).thenReturn(List.of(
-                reservation(AppointmentResourceReservation.ResourceTargetType.DOCTOR, "1"),
-                reservation(AppointmentResourceReservation.ResourceTargetType.ROOM, "2"),
-                reservation(AppointmentResourceReservation.ResourceTargetType.EQUIPMENT, "3")
-        ));
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(appointmentResourceReservationRepository.save(any(AppointmentResourceReservation.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
         when(appointmentMapper.toResponse(any(Appointment.class))).thenAnswer(invocation -> {
             Appointment appointment = invocation.getArgument(0);
             return AppointmentResponse.builder()
@@ -339,17 +326,7 @@ class AppointmentServiceTest {
                 .isInstanceOf(AppointmentAccessDeniedException.class);
     }
 
-    private AppointmentResourceReservation reservation(
-            AppointmentResourceReservation.ResourceTargetType targetType,
-            String slotId) {
-        return AppointmentResourceReservation.builder()
-                .appointmentId("apt-001")
-                .targetType(targetType)
-                .slotId(slotId)
-                .targetId(slotId)
-                .status(AppointmentResourceReservation.ReservationStatus.RESERVED)
-                .build();
-    }
+
 
     private void mockSuccessfulValidation() {
         lenient().when(examPackageService.getPackageById("pkg-001")).thenReturn(ExamPackageResponse.builder()
