@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../data/chat_socket_service.dart';
 
 class ChatDetailScreen extends StatefulWidget {
+  final String conversationId;
   final String doctorName;
   final String doctorImage;
+  final String currentUserId;
 
   const ChatDetailScreen({
     super.key,
+    required this.conversationId,
     required this.doctorName,
     required this.doctorImage,
+    required this.currentUserId,
   });
 
   @override
@@ -16,22 +22,76 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [
-    {'text': 'Chào bác sĩ, tôi muốn hỏi về kết quả xét nghiệm hôm qua ạ.', 'isMe': true, 'time': '10:30 AM'},
-    {'text': 'Chào bạn, kết quả xét nghiệm của bạn đã có. Chỉ số đường huyết hơi cao một chút, bạn cần chú ý chế độ ăn uống nhé.', 'isMe': false, 'time': '10:31 AM'},
-    {'text': 'Dạ vâng, tôi nên kiêng những gì thưa bác sĩ?', 'isMe': true, 'time': '10:32 AM'},
-  ];
+  final ScrollController _scrollController = ScrollController();
+  final ChatSocketService _chatService = ChatSocketService();
+  
+  List<dynamic> _messages = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initChat();
+  }
+
+  void _initChat() {
+    _chatService.joinConversation(widget.conversationId);
+    _chatService.getHistory(widget.conversationId);
+
+    _chatService.historyStream.listen((data) {
+      if (mounted && data['conversationId'] == widget.conversationId) {
+        setState(() {
+          _messages = List.from(data['messages'] ?? []).reversed.toList();
+          _isLoading = false;
+        });
+        _scrollToBottom();
+      }
+    });
+
+    _chatService.newMessageStream.listen((message) {
+      if (mounted && message['conversationId'] == widget.conversationId) {
+        setState(() {
+          _messages.add(message);
+        });
+        _scrollToBottom();
+        
+        // Mark as read if I am the recipient
+        if (message['recipientId'] == widget.currentUserId) {
+          _chatService.markAsRead(widget.conversationId, message['id']);
+        }
+      }
+    });
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty) return;
-    setState(() {
-      _messages.add({
-        'text': _messageController.text,
-        'isMe': true,
-        'time': '10:35 AM', // Mock time
-      });
-      _messageController.clear();
-    });
+    
+    final text = _messageController.text.trim();
+    _messageController.clear();
+    
+    _chatService.sendMessage(widget.conversationId, text);
+  }
+
+  String _formatTime(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      return DateFormat('hh:mm a').format(date);
+    } catch (e) {
+      return '';
+    }
   }
 
   @override
@@ -50,6 +110,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             CircleAvatar(
               radius: 18,
               backgroundImage: NetworkImage(widget.doctorImage),
+              onBackgroundImageError: (_, __) {},
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -77,14 +138,23 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return _buildMessageBubble(msg['text'], msg['isMe'], msg['time']);
-              },
-            ),
+            child: _isLoading 
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF38A3A5)))
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _messages[index];
+                      final isMe = msg['senderId'] == widget.currentUserId;
+                      return _buildMessageBubble(
+                        msg['content'] ?? '', 
+                        isMe, 
+                        _formatTime(msg['createdAt']),
+                        msg['status'] ?? 'SENT'
+                      );
+                    },
+                  ),
           ),
           _buildMessageInput(),
         ],
@@ -92,7 +162,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildMessageBubble(String text, bool isMe, String time) {
+  Widget _buildMessageBubble(String text, bool isMe, String time, String status) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -119,9 +189,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            time,
-            style: const TextStyle(color: Colors.grey, fontSize: 10),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                time,
+                style: const TextStyle(color: Colors.grey, fontSize: 10),
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  status == 'READ' ? Icons.done_all : Icons.check,
+                  size: 12,
+                  color: status == 'READ' ? Colors.blue : Colors.grey,
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -155,6 +238,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     hintText: 'Nhập tin nhắn...',
                     border: InputBorder.none,
                   ),
+                  onSubmitted: (_) => _sendMessage(),
                 ),
               ),
             ),

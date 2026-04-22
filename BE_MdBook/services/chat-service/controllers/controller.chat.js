@@ -68,7 +68,8 @@ async function createConversation(req, res, next) {
 
     const conversation = await createOrGetConversation({
       currentUserId: userId,
-      otherUserId,
+      currentUserRoles: req.roles || [],
+      targetUserId: otherUserId,
       correlationId,
     });
 
