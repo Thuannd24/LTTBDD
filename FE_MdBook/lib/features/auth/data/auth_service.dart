@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_client.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/utils/jwt_utils.dart';
 
 class AuthService {
   final ApiClient _apiClient = ApiClient();
@@ -31,6 +32,11 @@ class AuthService {
         
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', accessToken);
+        // Store Keycloak sub (used by chat service as senderId)
+        final chatUserId = getSubFromJwt(accessToken);
+        if (chatUserId != null) {
+          await prefs.setString('chat_user_id', chatUserId);
+        }
         
         return {
           'success': true,
@@ -72,10 +78,16 @@ class AuthService {
         final profileData = jsonDecode(profileRes.body)['result'] as Map<String, dynamic>;
         
         final merged = { ...identityData, ...profileData };
-        return UserProfile.fromJson(merged);
+        final profile = UserProfile.fromJson(merged);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_id', profile.userId);
+        return profile;
       } else if (profileRes.statusCode == 200) {
         final profileData = jsonDecode(profileRes.body)['result'] as Map<String, dynamic>;
-        return UserProfile.fromJson(profileData);
+        final profile = UserProfile.fromJson(profileData);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_id', profile.userId);
+        return profile;
       }
       return null;
     } catch (e) {
@@ -119,6 +131,8 @@ class AuthService {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
+    await prefs.remove('user_id');
+    await prefs.remove('chat_user_id');
   }
 
   Future<Map<String, dynamic>> register({

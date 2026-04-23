@@ -33,8 +33,10 @@ class DoctorDetailScreen extends StatelessWidget {
             MaterialPageRoute(
               builder: (context) => ChatDetailScreen(
                 conversationId: conversation['id'],
-                doctorName: doctor.fullName,
-                doctorImage: doctor.avatar ?? 'https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg',
+                otherUserId: doctor.userId,
+                otherUserRole: 'ROLE_DOCTOR',
+                otherUserName: doctor.fullName,
+                otherUserImage: doctor.avatar,
                 currentUserId: currentUserId,
               ),
             ),

@@ -5,6 +5,8 @@ import 'user_management_screen.dart';
 import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
 
 import '../../../../core/models/user_model.dart';
+import 'package:tbdd/features/chat/data/chat_socket_service.dart';
+import 'package:tbdd/features/chat/data/profile_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   final UserProfile? user;
@@ -184,6 +186,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.grey, size: 18),
             onPressed: () async {
+              ProfileService.instance.clearCache();
+              ChatSocketService().disconnect();
               await _authService.logout();
               if (mounted) {
                 Navigator.pushAndRemoveUntil(

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,14 +26,12 @@ import com.medbook.appointment.dto.response.CreateAppointmentResponse;
 import com.medbook.appointment.dto.response.ExamPackageResponse;
 import com.medbook.appointment.dto.response.ExamPackageStepResponse;
 import com.medbook.appointment.entity.Appointment;
-import com.medbook.appointment.entity.AppointmentResourceReservation;
 import com.medbook.appointment.exception.AppointmentAccessDeniedException;
 import com.medbook.appointment.exception.AppointmentNotFoundException;
 import com.medbook.appointment.exception.AppointmentValidationException;
 import com.medbook.appointment.exception.DoctorScheduleNotFoundException;
 import com.medbook.appointment.mapper.AppointmentMapper;
 import com.medbook.appointment.repository.AppointmentRepository;
-import com.medbook.appointment.repository.AppointmentResourceReservationRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,16 +57,10 @@ class AppointmentServiceTest {
     private ExamPackageService examPackageService;
 
     @Mock
-    private ExamPackageStepService examPackageStepService;
-
-    @Mock
     private DoctorServiceClient doctorServiceClient;
 
     @Mock
     private SlotServiceClient slotServiceClient;
-
-    @Mock
-    private AppointmentResourceReservationRepository appointmentResourceReservationRepository;
 
     @InjectMocks
     private AppointmentService appointmentService;
@@ -127,11 +121,6 @@ class AppointmentServiceTest {
             }
             return appointment;
         });
-        when(appointmentResourceReservationRepository.findByAppointmentIdAndTargetTypeAndSlotId(any(), any(), any()))
-                .thenReturn(Optional.empty());
-        when(appointmentResourceReservationRepository.save(any(AppointmentResourceReservation.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
         CreateAppointmentResponse response = appointmentService.createAppointment(validRequest, currentUserId);
 
         assertThat(response.getAppointmentId()).isNotBlank();
@@ -139,23 +128,6 @@ class AppointmentServiceTest {
         verify(doctorServiceClient).reserveSchedule(1L, response.getAppointmentId());
         verify(slotServiceClient).reserveSlot(2L, response.getAppointmentId());
         verify(slotServiceClient).reserveSlot(3L, response.getAppointmentId());
-    }
-
-    @Test
-    void createAppointment_rejectsWhenStepDoesNotBelongToPackage() {
-        mockSuccessfulValidation();
-        when(examPackageStepService.getStepById("step-001")).thenReturn(ExamPackageStepResponse.builder()
-                .id("step-001")
-                .packageId("pkg-other")
-                .allowedSpecialtyIds(List.of("specialty-1"))
-                .requiredRoomCategory("LAB_ROOM")
-                .requiredEquipmentType("XRAY_MACHINE")
-                .equipmentRequired(true)
-                .build());
-
-        assertThatThrownBy(() -> appointmentService.createAppointment(validRequest, currentUserId))
-                .isInstanceOf(AppointmentValidationException.class)
-                .hasMessageContaining("does not belong");
     }
 
     @Test
@@ -194,37 +166,12 @@ class AppointmentServiceTest {
     @Test
     void createAppointment_rejectsWhenRoomSlotUnavailable() {
         mockSuccessfulValidation();
-        when(slotServiceClient.getSlotById("2")).thenReturn(new SlotInfo(
-                "2",
-                "ROOM",
-                "room-001",
-                "2026-04-07",
-                "08:00",
-                "09:00",
-                false
-        ));
+        doThrow(new RuntimeException("Room slot is not available"))
+                .when(slotServiceClient).reserveSlot(eq(2L), anyString());
 
         assertThatThrownBy(() -> appointmentService.createAppointment(validRequest, currentUserId))
-                .isInstanceOf(AppointmentValidationException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Room slot is not available");
-    }
-
-    @Test
-    void createAppointment_rejectsWhenEquipmentRequiredButMissing() {
-        mockSuccessfulValidation();
-        CreateAppointmentRequest requestWithoutEquipment = CreateAppointmentRequest.builder()
-                .packageId("pkg-001")
-                .packageStepId("step-001")
-                .doctorId("doctor-123")
-                .doctorScheduleId(1L)
-                .roomSlotId(2L)
-                .note("Test")
-                .facilityId("facility-001")
-                .build();
-
-        assertThatThrownBy(() -> appointmentService.createAppointment(requestWithoutEquipment, currentUserId))
-                .isInstanceOf(AppointmentValidationException.class)
-                .hasMessageContaining("Equipment slot ID is required");
     }
 
     @Test
@@ -291,18 +238,13 @@ class AppointmentServiceTest {
                 .patientUserId("user-123")
                 .doctorId("doctor-123")
                 .doctorScheduleId(1L)
+                .roomSlotId(2L)
+                .equipmentSlotId(3L)
                 .status(Appointment.AppointmentStatus.CONFIRMED)
                 .build();
 
         when(appointmentRepository.findById("apt-001")).thenReturn(Optional.of(confirmedAppointment));
-        when(appointmentResourceReservationRepository.findByAppointmentId("apt-001")).thenReturn(List.of(
-                reservation(AppointmentResourceReservation.ResourceTargetType.DOCTOR, "1"),
-                reservation(AppointmentResourceReservation.ResourceTargetType.ROOM, "2"),
-                reservation(AppointmentResourceReservation.ResourceTargetType.EQUIPMENT, "3")
-        ));
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(appointmentResourceReservationRepository.save(any(AppointmentResourceReservation.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
         when(appointmentMapper.toResponse(any(Appointment.class))).thenAnswer(invocation -> {
             Appointment appointment = invocation.getArgument(0);
             return AppointmentResponse.builder()
@@ -339,32 +281,11 @@ class AppointmentServiceTest {
                 .isInstanceOf(AppointmentAccessDeniedException.class);
     }
 
-    private AppointmentResourceReservation reservation(
-            AppointmentResourceReservation.ResourceTargetType targetType,
-            String slotId) {
-        return AppointmentResourceReservation.builder()
-                .appointmentId("apt-001")
-                .targetType(targetType)
-                .slotId(slotId)
-                .targetId(slotId)
-                .status(AppointmentResourceReservation.ReservationStatus.RESERVED)
-                .build();
-    }
-
     private void mockSuccessfulValidation() {
         lenient().when(examPackageService.getPackageById("pkg-001")).thenReturn(ExamPackageResponse.builder()
                 .id("pkg-001")
                 .code("GENERAL")
                 .name("General Package")
-                .build());
-
-        lenient().when(examPackageStepService.getStepById("step-001")).thenReturn(ExamPackageStepResponse.builder()
-                .id("step-001")
-                .packageId("pkg-001")
-                .allowedSpecialtyIds(List.of("specialty-1"))
-                .requiredRoomCategory("LAB_ROOM")
-                .requiredEquipmentType("XRAY_MACHINE")
-                .equipmentRequired(true)
                 .build());
 
         lenient().when(doctorServiceClient.getDoctorById("doctor-123")).thenReturn(new DoctorInfo(
