@@ -2,15 +2,18 @@ package com.medbook.doctor.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.GrantedAuthority;
 
 import com.medbook.doctor.dto.request.DoctorScheduleBlockRequest;
 import com.medbook.doctor.dto.request.DoctorScheduleCreateRequest;
 import com.medbook.doctor.dto.request.DoctorScheduleReserveRequest;
 import com.medbook.doctor.dto.response.DoctorScheduleResponse;
+import com.medbook.doctor.entity.Doctor;
 import com.medbook.doctor.entity.DoctorSchedule;
 import com.medbook.doctor.entity.enums.DoctorScheduleStatus;
 import com.medbook.doctor.exception.AppException;
@@ -161,6 +164,29 @@ public class DoctorScheduleService {
         doctorSchedule.setNotes(request.getReason());
         doctorSchedule = doctorScheduleRepository.save(doctorSchedule);
         return doctorScheduleMapper.toDoctorScheduleResponse(doctorSchedule);
+    }
+
+    public void validateManagePermission(
+            String doctorId,
+            String userId,
+            Collection<? extends GrantedAuthority> authorities) {
+        boolean isAdmin = authorities.stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+        if (isAdmin) {
+            return;
+        }
+
+        boolean isDoctor = authorities.stream()
+                .anyMatch(authority -> "ROLE_DOCTOR".equals(authority.getAuthority()));
+        if (!isDoctor) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new AppException(ErrorCode.DOCTOR_NOT_EXISTED));
+        if (!doctor.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
     }
 
     private void ensureDoctorExists(String doctorId) {

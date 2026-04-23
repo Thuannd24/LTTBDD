@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Sao chép và build Gateway
 COPY gateway ./gateway
-RUN mvn clean package -f gateway/pom.xml -DskipTests
+RUN mvn clean package -f gateway/pom.xml -Dmaven.test.skip=true
 
 # Giai đoạn 2: Chạy
 FROM eclipse-temurin:21-jre-jammy

@@ -48,6 +48,25 @@ class _BookingScreenState extends State<BookingScreen> {
     super.dispose();
   }
 
+  Future<void> _hydrateSelectedDoctor() async {
+    final selectedDoctor = _selectedDoctor;
+    if (selectedDoctor == null || selectedDoctor.userId.isEmpty) {
+      return;
+    }
+
+    final profile = await _authService.getUserInfo(selectedDoctor.userId);
+    if (!mounted || _selectedDoctor?.id != selectedDoctor.id || profile == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedDoctor!
+        ..firstName = profile.firstName
+        ..lastName = profile.lastName
+        ..avatar = profile.avatar ?? _selectedDoctor!.avatar;
+    });
+  }
+
   Future<void> _loadInitialData() async {
     try {
       final results = await Future.wait([
@@ -69,6 +88,7 @@ class _BookingScreenState extends State<BookingScreen> {
       });
 
       if (_selectedDoctor != null) {
+        await _hydrateSelectedDoctor();
         await _loadSchedules();
       }
     } catch (_) {
@@ -129,6 +149,7 @@ class _BookingScreenState extends State<BookingScreen> {
     setState(() {
       _selectedDoctor = doctor;
     });
+    await _hydrateSelectedDoctor();
     await _loadSchedules();
   }
 
