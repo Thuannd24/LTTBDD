@@ -25,12 +25,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _patientCount = 0;
 
   final List<Map<String, dynamic>> _menuItems = [
-    {'icon': Icons.dashboard_rounded, 'label': 'Tong quan'},
-    {'icon': Icons.calendar_month_rounded, 'label': 'Lich kham'},
-    {'icon': Icons.people_alt_rounded, 'label': 'Nguoi dung'},
-    {'icon': Icons.inventory_2_rounded, 'label': 'Goi kham'},
-    {'icon': Icons.medical_services_rounded, 'label': 'Chuyen khoa'},
-    {'icon': Icons.bar_chart_rounded, 'label': 'Thong ke'},
+    {'icon': Icons.dashboard_rounded, 'label': 'Tổng quan'},
+    {'icon': Icons.calendar_month_rounded, 'label': 'Lịch khám'},
+    {'icon': Icons.people_alt_rounded, 'label': 'Người dùng'},
+    {'icon': Icons.inventory_2_rounded, 'label': 'Gói khám'},
+    {'icon': Icons.medical_services_rounded, 'label': 'Chuyên khoa'},
+    {'icon': Icons.bar_chart_rounded, 'label': 'Thống kê'},
   ];
 
   @override
@@ -84,12 +84,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       index: _selectedIndex,
                       children: [
                         _buildOverviewTab(isMobile),
-                        const Center(child: Text('Lich kham (Sap ra mat)')),
+                        const Center(child: Text('Lịch khám (Sắp ra mắt)')),
                         UserManagementScreen(onUserAdded: _loadStats),
                         const ExamPackagesListScreen(),
                         const SpecialtiesListScreen(),
                         const Center(
-                          child: Text('Thong ke bao cao (Sap ra mat)'),
+                          child: Text('Thống kê báo cáo (Sắp ra mắt)'),
                         ),
                       ],
                     ),
@@ -216,7 +216,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ),
                 const Text(
-                  'Quan tri vien',
+                  'Quản trị viên',
                   style: TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
@@ -303,11 +303,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   List<Widget> _buildStatCardsList({required bool horizontal}) {
     final cards = [
-      _buildStatCard('Bac si', '$_doctorCount', Icons.person_add, Colors.blue),
+      _buildStatCard('Bác sĩ', '$_doctorCount', Icons.person_add, Colors.blue),
       const SizedBox(width: 16, height: 16),
-      _buildStatCard('Benh nhan', '$_patientCount', Icons.people, Colors.green),
+      _buildStatCard('Bệnh nhân', '$_patientCount', Icons.people, Colors.green),
       const SizedBox(width: 16, height: 16),
-      _buildStatCard('Lich hen', '0', Icons.calendar_today, Colors.orange),
+      _buildStatCard('Lịch hẹn', '0', Icons.calendar_today, Colors.orange),
       const SizedBox(width: 16, height: 16),
       _buildStatCard('Doanh thu', '0M', Icons.attach_money, Colors.purple),
     ];
@@ -395,12 +395,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Lich hen gan day',
+                'Lịch hẹn gần đây',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               TextButton(
                 onPressed: () => setState(() => _selectedIndex = 1),
-                child: const Text('Xem tat ca'),
+                child: const Text('Xem tất cả'),
               ),
             ],
           ),
@@ -429,20 +429,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Thao tac nhanh',
+            'Thao tác nhanh',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           _buildActionButton(
             Icons.person_add_alt_1,
-            'Them nguoi dung',
+            'Thêm người dùng',
             const Color(0xFF38A3A5),
             onTap: () => setState(() => _selectedIndex = 2),
           ),
           const SizedBox(height: 12),
           _buildActionButton(
             Icons.inventory_2_outlined,
-            'Tao goi kham',
+            'Tạo gói khám',
             Colors.orange,
             onTap: () => setState(() => _selectedIndex = 3),
           ),
@@ -488,19 +488,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
         columns: const [
           DataColumn(
             label: Text(
-              'Benh nhan',
+              'Bệnh nhân',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           DataColumn(
             label: Text(
-              'Bac si',
+              'Bác sĩ',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           DataColumn(
             label: Text(
-              'Trang thai',
+              'Trạng thái',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -509,8 +509,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           3,
           (index) => DataRow(
             cells: [
-              const DataCell(Text('Benh nhan mau')),
-              const DataCell(Text('Bac si A')),
+              const DataCell(Text('Bệnh nhân mẫu')),
+              const DataCell(Text('Bác sĩ A')),
               DataCell(
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -522,7 +522,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
-                    'Cho kham',
+                    'Chờ khám',
                     style: TextStyle(
                       color: Colors.orange,
                       fontSize: 12,

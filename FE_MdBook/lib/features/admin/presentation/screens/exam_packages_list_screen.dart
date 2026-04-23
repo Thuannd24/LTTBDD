@@ -42,7 +42,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Khong the tai danh sach goi kham: $e')),
+        SnackBar(content: Text('Không thể tải danh sách gói khám: $e')),
       );
     } finally {
       if (mounted) {
@@ -80,16 +80,16 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Xac nhan xoa'),
-          content: Text('Ban co chac muon xoa goi kham "${item.name}"?'),
+          title: const Text('Xác nhận xóa'),
+          content: Text('Bạn có chắc muốn xóa gói khám "${item.name}"?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Huy'),
+              child: const Text('Hủy'),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Xoa'),
+              child: const Text('Xóa'),
             ),
           ],
         );
@@ -108,7 +108,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Xoa goi kham thanh cong')));
+      ).showSnackBar(const SnackBar(content: Text('Xóa gói khám thành công')));
       await _load();
     } catch (e) {
       if (!mounted) {
@@ -117,7 +117,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Khong the xoa goi kham: $e')));
+      ).showSnackBar(SnackBar(content: Text('Không thể xóa gói khám: $e')));
     }
   }
 
@@ -135,11 +135,11 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
   String _statusLabel(String? status) {
     switch (status) {
       case 'ACTIVE':
-        return 'Dang hoat dong';
+        return 'Đang hoạt động';
       case 'INACTIVE':
-        return 'Tam dung';
+        return 'Tạm dừng';
       default:
-        return status ?? 'Khong ro';
+        return status ?? 'Không rõ';
     }
   }
 
@@ -152,7 +152,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
         backgroundColor: const Color(0xFF38A3A5),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
-          'Tao goi kham',
+          'Tạo gói khám',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       ),
@@ -167,7 +167,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
                         SizedBox(height: 180),
                         Center(
                           child: Text(
-                            'Chua co goi kham nao',
+                            'Chưa có gói khám nào',
                             style: TextStyle(color: Colors.grey, fontSize: 16),
                           ),
                         ),
@@ -221,7 +221,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'Code: ${item.code}',
+                                            'Mã: ${item.code}',
                                             style: const TextStyle(
                                               color: Colors.grey,
                                               fontSize: 13,
@@ -258,7 +258,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
                                 Text(
                                   item.description?.trim().isNotEmpty == true
                                       ? item.description!
-                                      : 'Chua co mo ta cho goi kham nay.',
+                                      : 'Chưa có mô tả cho gói khám này.',
                                   style: const TextStyle(
                                     color: Colors.black87,
                                     height: 1.4,
@@ -271,7 +271,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
                                   children: [
                                     _buildMetaChip(
                                       Icons.timer_outlined,
-                                      '${item.estimatedTotalMinutes ?? 0} phut',
+                                      '${item.estimatedTotalMinutes ?? 0} phút',
                                     ),
                                   ],
                                 ),
@@ -282,7 +282,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
                                     TextButton.icon(
                                       onPressed: () => _openEdit(item),
                                       icon: const Icon(Icons.edit_outlined),
-                                      label: const Text('Sua'),
+                                      label: const Text('Sửa'),
                                     ),
                                     const SizedBox(width: 8),
                                     TextButton.icon(
@@ -292,7 +292,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
                                         color: Colors.red,
                                       ),
                                       label: const Text(
-                                        'Xoa',
+                                        'Xóa',
                                         style: TextStyle(color: Colors.red),
                                       ),
                                     ),

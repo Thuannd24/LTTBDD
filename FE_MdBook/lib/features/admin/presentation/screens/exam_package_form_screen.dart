@@ -93,8 +93,8 @@ class _ExamPackageFormScreenState extends State<ExamPackageFormScreen> {
         SnackBar(
           content: Text(
             _isEdit
-                ? 'Cap nhat goi kham thanh cong'
-                : 'Tao goi kham thanh cong',
+                ? 'Cập nhật gói khám thành công'
+                : 'Tạo gói khám thành công',
           ),
         ),
       );
@@ -106,7 +106,7 @@ class _ExamPackageFormScreenState extends State<ExamPackageFormScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Khong the luu goi kham: $e')));
+      ).showSnackBar(SnackBar(content: Text('Không thể lưu gói khám: $e')));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -119,7 +119,7 @@ class _ExamPackageFormScreenState extends State<ExamPackageFormScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(_isEdit ? 'Sua goi kham' : 'Tao goi kham'),
+        title: Text(_isEdit ? 'Sửa gói khám' : 'Tạo gói khám'),
         backgroundColor: const Color(0xFF38A3A5),
         foregroundColor: Colors.white,
       ),
@@ -130,38 +130,38 @@ class _ExamPackageFormScreenState extends State<ExamPackageFormScreen> {
           children: [
             _buildTextField(
               controller: _codeController,
-              label: 'Ma goi kham',
+              label: 'Mã gói khám',
               icon: Icons.qr_code_rounded,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Vui long nhap ma goi kham';
+                  return 'Vui lòng nhập mã gói khám';
                 }
                 return null;
               },
             ),
             _buildTextField(
               controller: _nameController,
-              label: 'Ten goi kham',
+              label: 'Tên gói khám',
               icon: Icons.medical_services_outlined,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Vui long nhap ten goi kham';
+                  return 'Vui lòng nhập tên gói khám';
                 }
                 return null;
               },
             ),
             _buildTextField(
               controller: _minutesController,
-              label: 'Thoi gian du kien (phut)',
+              label: 'Thời gian dự kiến (phút)',
               icon: Icons.timer_outlined,
               keyboardType: TextInputType.number,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Vui long nhap thoi gian du kien';
+                  return 'Vui lòng nhập thời gian dự kiến';
                 }
                 final minutes = int.tryParse(value.trim());
                 if (minutes == null || minutes <= 0) {
-                  return 'Thoi gian phai lon hon 0';
+                  return 'Thời gian phải lớn hơn 0';
                 }
                 return null;
               },
@@ -171,7 +171,7 @@ class _ExamPackageFormScreenState extends State<ExamPackageFormScreen> {
               child: DropdownButtonFormField<String>(
                 initialValue: _selectedStatus,
                 decoration: InputDecoration(
-                  labelText: 'Trang thai',
+                  labelText: 'Trạng thái',
                   prefixIcon: const Icon(
                     Icons.toggle_on_outlined,
                     color: Color(0xFF38A3A5),
@@ -185,9 +185,9 @@ class _ExamPackageFormScreenState extends State<ExamPackageFormScreen> {
                 items: const [
                   DropdownMenuItem(
                     value: 'ACTIVE',
-                    child: Text('Dang hoat dong'),
+                    child: Text('Đang hoạt động'),
                   ),
-                  DropdownMenuItem(value: 'INACTIVE', child: Text('Tam dung')),
+                  DropdownMenuItem(value: 'INACTIVE', child: Text('Tạm dừng')),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -198,7 +198,7 @@ class _ExamPackageFormScreenState extends State<ExamPackageFormScreen> {
             ),
             _buildTextField(
               controller: _descriptionController,
-              label: 'Mo ta',
+              label: 'Mô tả',
               icon: Icons.description_outlined,
               maxLines: 5,
             ),
@@ -223,7 +223,7 @@ class _ExamPackageFormScreenState extends State<ExamPackageFormScreen> {
                         ),
                       )
                     : Text(
-                        _isEdit ? 'CAP NHAT GOI KHAM' : 'TAO GOI KHAM',
+                        _isEdit ? 'CẬP NHẬT GÓI KHÁM' : 'TẠO GÓI KHÁM',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
