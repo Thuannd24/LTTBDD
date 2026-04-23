@@ -47,6 +47,13 @@ function normalizeProfile(userId, body, roleHint) {
       roleHint
   );
 
+  // Profile service returns firstName + lastName separately (no combined field).
+  // Build a combined name as fallback.
+  const combinedName =
+    (data.firstName || data.lastName)
+      ? `${data.firstName || ''} ${data.lastName || ''}`.trim()
+      : null;
+
   return {
     userId,
     role,
@@ -56,6 +63,7 @@ function normalizeProfile(userId, body, roleHint) {
       data.name ||
       data.patientName ||
       data.doctorName ||
+      combinedName ||
       null,
     avatarUrl: data.avatarUrl || data.avatar || data.photoUrl || null,
     raw: data,
@@ -107,7 +115,10 @@ async function getUserProfile(userId, options = {}) {
     );
     const profile = await fetchProfileFromUrl(userId, url, roleHint, correlationId);
     if (profile) {
-      writeCachedProfile(userId, profile);
+      // Only cache if we got a real display name; otherwise re-fetch next time
+      if (profile.displayName) {
+        writeCachedProfile(userId, profile);
+      }
       return profile;
     }
   }

@@ -10,6 +10,8 @@ import 'package:tbdd/features/doctor/presentation/screens/doctor_schedule_screen
 import 'package:tbdd/features/doctor/presentation/screens/doctor_personal_info_screen.dart';
 
 import 'package:tbdd/features/chat/presentation/screens/chat_list_screen.dart';
+import 'package:tbdd/features/chat/data/profile_service.dart';
+import 'package:tbdd/features/chat/data/chat_socket_service.dart';
 
 class DoctorDashboard extends StatefulWidget {
   final UserProfile? user;
@@ -168,6 +170,8 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       ),
       child: InkWell(
         onTap: () async {
+          ProfileService.instance.clearCache();
+          ChatSocketService().disconnect();
           await _authService.logout();
           if (mounted) {
             Navigator.pushAndRemoveUntil(
