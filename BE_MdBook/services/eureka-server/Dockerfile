@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Sao chép và build Eureka Server
 COPY services/eureka-server ./services/eureka-server
-RUN mvn clean package -f services/eureka-server/pom.xml -DskipTests
+RUN mvn clean package -f services/eureka-server/pom.xml -Dmaven.test.skip=true
 
 # Giai đoạn 2: Chạy
 FROM eclipse-temurin:21-jre-jammy

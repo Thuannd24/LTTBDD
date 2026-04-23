@@ -2,10 +2,8 @@ package com.medbook.appointment.controller;
 
 import com.medbook.appointment.dto.ApiResponse;
 import com.medbook.appointment.dto.request.CancelAppointmentRequest;
-import com.medbook.appointment.dto.request.CreateAppointmentRequest;
 import com.medbook.appointment.dto.response.AppointmentResponse;
 import com.medbook.appointment.dto.response.AppointmentStatusResponse;
-import com.medbook.appointment.dto.response.CreateAppointmentResponse;
 import com.medbook.appointment.exception.AppointmentAccessDeniedException;
 import com.medbook.appointment.service.AppointmentService;
 import jakarta.validation.Valid;
@@ -15,8 +13,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,22 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppointmentController {
 
     AppointmentService appointmentService;
-
-    @PostMapping
-    public ResponseEntity<ApiResponse<CreateAppointmentResponse>> createAppointment(
-            @RequestBody @Valid CreateAppointmentRequest request) {
-
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        log.info("POST /appointments - Creating appointment for user: {}", userId);
-
-        CreateAppointmentResponse response = appointmentService.createAppointment(request, userId);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ApiResponse.<CreateAppointmentResponse>builder()
-                        .result(response)
-                        .build());
-    }
 
     @GetMapping("/{id}")
     public ApiResponse<AppointmentResponse> getAppointment(@PathVariable String id) {
@@ -110,7 +90,7 @@ public class AppointmentController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<AppointmentResponse>> cancelAppointment(
+    public ApiResponse<AppointmentResponse> cancelAppointment(
             @PathVariable String id,
             @RequestBody @Valid CancelAppointmentRequest request) {
 
@@ -119,11 +99,21 @@ public class AppointmentController {
 
         AppointmentResponse response = appointmentService.cancelAppointment(id, request, userId);
 
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(ApiResponse.<AppointmentResponse>builder()
-                        .result(response)
-                        .build());
+        return ApiResponse.<AppointmentResponse>builder()
+                .result(response)
+                .build();
+    }
+
+    @PostMapping("/{id}/complete")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
+    public ApiResponse<AppointmentResponse> completeAppointment(@PathVariable String id) {
+        log.info("POST /appointments/{}/complete", id);
+
+        AppointmentResponse response = appointmentService.completeAppointment(id);
+
+        return ApiResponse.<AppointmentResponse>builder()
+                .result(response)
+                .build();
     }
 
     private void validatePermission(String patientUserId, Authentication authentication) {

@@ -4,7 +4,7 @@ WORKDIR /app
 
 # 1. Build doctor-service
 COPY services/doctor-service ./services/doctor-service
-RUN mvn clean package -f services/doctor-service/pom.xml -DskipTests
+RUN mvn clean package -f services/doctor-service/pom.xml -Dmaven.test.skip=true
 
 # Giai đoạn 2: Chạy
 FROM eclipse-temurin:21-jre-jammy

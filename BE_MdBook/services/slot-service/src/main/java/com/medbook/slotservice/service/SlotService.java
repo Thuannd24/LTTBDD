@@ -59,13 +59,14 @@ public class SlotService {
         validateRecurringRequest(request);
         assertTargetExists(request.getTargetType(), request.getTargetId(), request.getFacilityId());
 
-        boolean exists = recurringRepository.existsByTargetTypeAndTargetIdAndFacilityIdAndDayOfWeekAndStartTimeAndEndTime(
-                request.getTargetType(),
-                request.getTargetId(),
-                request.getFacilityId(),
-                request.getDayOfWeek(),
-                request.getStartTime(),
-                request.getEndTime());
+        boolean exists = recurringRepository
+                .existsByTargetTypeAndTargetIdAndFacilityIdAndDayOfWeekAndStartTimeAndEndTime(
+                        request.getTargetType(),
+                        request.getTargetId(),
+                        request.getFacilityId(),
+                        request.getDayOfWeek(),
+                        request.getStartTime(),
+                        request.getEndTime());
         if (exists) {
             throw new AppException(ErrorCode.RECURRING_CONFIG_ALREADY_EXISTS);
         }
@@ -91,9 +92,11 @@ public class SlotService {
                 .build();
     }
 
-    public List<RecurringSlotConfigResponse> getScheduleConfigs(SlotTargetType targetType, String targetId, Long facilityId) {
+    public List<RecurringSlotConfigResponse> getScheduleConfigs(SlotTargetType targetType, String targetId,
+            Long facilityId) {
         if (targetType != null && targetId != null && !targetId.isBlank()) {
-            return recurringRepository.findByTargetTypeAndTargetIdAndStatus(targetType, targetId, RecurringStatus.ACTIVE)
+            return recurringRepository
+                    .findByTargetTypeAndTargetIdAndStatus(targetType, targetId, RecurringStatus.ACTIVE)
                     .stream()
                     .map(recurringMapper::toResponse)
                     .toList();
@@ -119,7 +122,8 @@ public class SlotService {
         }
 
         List<String> roomIds = roomRepository
-                .findByFacilityIdAndRoomCategoryAndStatus(query.getFacilityId(), query.getRoomCategory(), RoomStatus.ACTIVE)
+                .findByFacilityIdAndRoomCategoryAndStatus(query.getFacilityId(), query.getRoomCategory(),
+                        RoomStatus.ACTIVE)
                 .stream()
                 .map(Room::getId)
                 .toList();
@@ -144,12 +148,13 @@ public class SlotService {
                 .map(slotMapper::toResponse)
                 .toList();
 
-        long total = slotRepository.countByTargetTypeAndTargetIdInAndStatusAndStartTimeGreaterThanEqualAndStartTimeLessThan(
-                SlotTargetType.ROOM,
-                roomIds,
-                SlotStatus.AVAILABLE,
-                startOfDay,
-                endOfDay);
+        long total = slotRepository
+                .countByTargetTypeAndTargetIdInAndStatusAndStartTimeGreaterThanEqualAndStartTimeLessThan(
+                        SlotTargetType.ROOM,
+                        roomIds,
+                        SlotStatus.AVAILABLE,
+                        startOfDay,
+                        endOfDay);
 
         AvailableSlotsResponse response = buildAvailableResponse(responses, (int) total, total > limit);
         cacheService.setAvailableSlots(cacheKey, response);
@@ -197,12 +202,13 @@ public class SlotService {
                 .map(slotMapper::toResponse)
                 .toList();
 
-        long total = slotRepository.countByTargetTypeAndTargetIdInAndStatusAndStartTimeGreaterThanEqualAndStartTimeLessThan(
-                SlotTargetType.EQUIPMENT,
-                equipmentIds,
-                SlotStatus.AVAILABLE,
-                startOfDay,
-                endOfDay);
+        long total = slotRepository
+                .countByTargetTypeAndTargetIdInAndStatusAndStartTimeGreaterThanEqualAndStartTimeLessThan(
+                        SlotTargetType.EQUIPMENT,
+                        equipmentIds,
+                        SlotStatus.AVAILABLE,
+                        startOfDay,
+                        endOfDay);
 
         AvailableSlotsResponse response = buildAvailableResponse(responses, (int) total, total > limit);
         cacheService.setAvailableSlots(cacheKey, response);
@@ -224,7 +230,8 @@ public class SlotService {
         }
 
         slot = slotRepository.findById(slotId).orElseThrow(() -> new AppException(ErrorCode.SLOT_NOT_FOUND));
-        recordHistory(slotId, SlotStatus.AVAILABLE, SlotStatus.RESERVED, request.getAppointmentId(), "Reserved by appointment");
+        recordHistory(slotId, SlotStatus.AVAILABLE, SlotStatus.RESERVED, request.getAppointmentId(),
+                "Reserved by appointment");
         invalidateBySlot(slot);
 
         return slotMapper.toResponse(slot);
@@ -253,7 +260,8 @@ public class SlotService {
         slot.setAppointmentId(null);
         slot = slotRepository.save(slot);
 
-        recordHistory(slotId, SlotStatus.RESERVED, SlotStatus.AVAILABLE, reservedAppointmentId, "Released by appointment cancellation");
+        recordHistory(slotId, SlotStatus.RESERVED, SlotStatus.AVAILABLE, reservedAppointmentId,
+                "Released by appointment cancellation");
         invalidateBySlot(slot);
 
         return slotMapper.toResponse(slot);
@@ -330,7 +338,8 @@ public class SlotService {
 
         if (targetType == SlotTargetType.EQUIPMENT) {
             equipmentRepository.findById(targetId)
-                    .ifPresent(equipment -> cacheService.invalidateEquipmentAvailability(facilityId, equipment.getRoomId()));
+                    .ifPresent(equipment -> cacheService.invalidateEquipmentAvailability(facilityId,
+                            equipment.getRoomId()));
         }
     }
 

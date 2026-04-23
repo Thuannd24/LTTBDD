@@ -5,10 +5,8 @@ import com.medbook.appointment.client.model.DoctorInfo;
 import com.medbook.appointment.client.model.DoctorScheduleInfo;
 import com.medbook.appointment.client.slot.SlotServiceClient;
 import com.medbook.appointment.dto.request.CancelAppointmentRequest;
-import com.medbook.appointment.dto.request.CreateAppointmentRequest;
 import com.medbook.appointment.dto.response.AppointmentResponse;
 import com.medbook.appointment.dto.response.AppointmentStatusResponse;
-import com.medbook.appointment.dto.response.CreateAppointmentResponse;
 import com.medbook.appointment.entity.Appointment;
 import com.medbook.appointment.exception.AppointmentAccessDeniedException;
 import com.medbook.appointment.exception.AppointmentNotFoundException;
@@ -16,6 +14,7 @@ import com.medbook.appointment.exception.AppointmentValidationException;
 import com.medbook.appointment.exception.DoctorScheduleNotFoundException;
 import com.medbook.appointment.mapper.AppointmentMapper;
 import com.medbook.appointment.repository.AppointmentRepository;
+import com.medbook.appointment.service.command.CreateAppointmentCommand;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +38,7 @@ public class AppointmentService {
     DoctorServiceClient doctorServiceClient;
     SlotServiceClient slotServiceClient;
 
-    public CreateAppointmentResponse createAppointment(CreateAppointmentRequest request, String patientUserId) {
+    AppointmentResponse createConfirmedAppointment(CreateAppointmentCommand request, String patientUserId) {
         log.info("Creating appointment for user: {}", patientUserId);
 
         validateCreateRequest(request);
@@ -53,7 +52,6 @@ public class AppointmentService {
                 .equipmentSlotId(request.getEquipmentSlotId())
                 .facilityId(request.getFacilityId() != null ? request.getFacilityId() : "default")
                 .packageId(request.getPackageId())
-                .packageStepId(request.getPackageStepId())
                 .status(Appointment.AppointmentStatus.CONFIRMED)
                 .note(request.getNote())
                 .build();
@@ -77,10 +75,7 @@ public class AppointmentService {
             Appointment saved = appointmentRepository.save(appointment);
             log.info("Appointment confirmed: {}", saved.getId());
 
-            return CreateAppointmentResponse.builder()
-                    .appointmentId(saved.getId())
-                    .status(saved.getStatus().name())
-                    .build();
+            return appointmentMapper.toResponse(saved);
 
         } catch (RuntimeException ex) {
             log.error("Booking failed, rolling back: {}", ex.getMessage());
@@ -99,16 +94,23 @@ public class AppointmentService {
             throw new AppointmentValidationException("Only confirmed appointments can be cancelled");
         }
 
-        safeRelease(() -> doctorServiceClient.releaseSchedule(appointment.getDoctorScheduleId(), appointmentId));
-        if (appointment.getRoomSlotId() != null) {
-            safeRelease(() -> slotServiceClient.releaseSlot(appointment.getRoomSlotId(), appointmentId));
-        }
-        if (appointment.getEquipmentSlotId() != null) {
-            safeRelease(() -> slotServiceClient.releaseSlot(appointment.getEquipmentSlotId(), appointmentId));
-        }
+        releaseReservedResources(appointment);
 
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
         appointment.setCancelReason(request.getReason());
+        return appointmentMapper.toResponse(appointmentRepository.save(appointment));
+    }
+
+    public AppointmentResponse completeAppointment(String appointmentId) {
+        Appointment appointment = findById(appointmentId);
+
+        if (appointment.getStatus() != Appointment.AppointmentStatus.CONFIRMED) {
+            throw new AppointmentValidationException("Only confirmed appointments can be completed");
+        }
+
+        releaseReservedResources(appointment);
+
+        appointment.setStatus(Appointment.AppointmentStatus.COMPLETED);
         return appointmentMapper.toResponse(appointmentRepository.save(appointment));
     }
 
@@ -137,7 +139,7 @@ public class AppointmentService {
                 .orElseThrow(() -> new AppointmentNotFoundException("Appointment not found: " + id));
     }
 
-    private void validateCreateRequest(CreateAppointmentRequest request) {
+    private void validateCreateRequest(CreateAppointmentCommand request) {
         if (request.getDoctorId() == null || request.getDoctorId().isBlank()) {
             throw new AppointmentValidationException("Doctor ID is required");
         }
@@ -146,6 +148,9 @@ public class AppointmentService {
         }
         if (request.getRoomSlotId() == null) {
             throw new AppointmentValidationException("Room slot ID is required");
+        }
+        if (request.getFacilityId() == null || request.getFacilityId().isBlank()) {
+            throw new AppointmentValidationException("Facility ID is required");
         }
 
         try {
@@ -166,7 +171,7 @@ public class AppointmentService {
         }
     }
 
-    private void rollback(String appointmentId, CreateAppointmentRequest request,
+    private void rollback(String appointmentId, CreateAppointmentCommand request,
                           boolean doctorReserved, boolean roomReserved, boolean equipmentReserved) {
         if (equipmentReserved && request.getEquipmentSlotId() != null) {
             safeRelease(() -> slotServiceClient.releaseSlot(request.getEquipmentSlotId(), appointmentId));
@@ -176,6 +181,16 @@ public class AppointmentService {
         }
         if (doctorReserved) {
             safeRelease(() -> doctorServiceClient.releaseSchedule(request.getDoctorScheduleId(), appointmentId));
+        }
+    }
+
+    private void releaseReservedResources(Appointment appointment) {
+        safeRelease(() -> doctorServiceClient.releaseSchedule(appointment.getDoctorScheduleId(), appointment.getId()));
+        if (appointment.getRoomSlotId() != null) {
+            safeRelease(() -> slotServiceClient.releaseSlot(appointment.getRoomSlotId(), appointment.getId()));
+        }
+        if (appointment.getEquipmentSlotId() != null) {
+            safeRelease(() -> slotServiceClient.releaseSlot(appointment.getEquipmentSlotId(), appointment.getId()));
         }
     }
 

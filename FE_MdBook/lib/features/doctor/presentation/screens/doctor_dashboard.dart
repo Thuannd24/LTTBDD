@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:tbdd/core/constants/app_strings.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
+import 'package:tbdd/core/models/user_model.dart';
 import 'package:tbdd/features/auth/data/auth_service.dart';
 import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
-import 'package:tbdd/core/models/user_model.dart';
 import 'package:tbdd/features/doctor/data/doctor_service.dart';
-import 'package:tbdd/core/models/doctor_profile_model.dart';
+import 'package:tbdd/features/doctor/presentation/screens/doctor_personal_info_screen.dart';
 import 'package:tbdd/features/doctor/presentation/screens/doctor_profile_edit_screen.dart';
 import 'package:tbdd/features/doctor/presentation/screens/doctor_schedule_screen.dart';
-import 'package:tbdd/features/doctor/presentation/screens/doctor_personal_info_screen.dart';
 
 import 'package:tbdd/features/chat/presentation/screens/chat_list_screen.dart';
 import 'package:tbdd/features/chat/data/profile_service.dart';
@@ -15,6 +15,7 @@ import 'package:tbdd/features/chat/data/chat_socket_service.dart';
 
 class DoctorDashboard extends StatefulWidget {
   final UserProfile? user;
+
   const DoctorDashboard({super.key, this.user});
 
   @override
@@ -24,7 +25,9 @@ class DoctorDashboard extends StatefulWidget {
 class _DoctorDashboardState extends State<DoctorDashboard> {
   final AuthService _authService = AuthService();
   final DoctorService _doctorService = DoctorService();
+
   DoctorProfile? _doctorInfo;
+  bool _loadingDoctorProfile = true;
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -43,15 +46,37 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   }
 
   Future<void> _loadDoctorProfile() async {
-    if (widget.user != null) {
-      try {
-        final doc = await _doctorService.getByUserId(widget.user!.userId);
-        setState(() {
-          _doctorInfo = doc;
-        });
-      } catch (e) {
-        debugPrint('Error loading doctor info: $e');
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _loadingDoctorProfile = true);
+
+    if (widget.user == null) {
+      if (mounted) {
+        setState(() => _loadingDoctorProfile = false);
       }
+      return;
+    }
+
+    try {
+      final doc = await _doctorService.getByUserId(widget.user!.userId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _doctorInfo = doc;
+        _loadingDoctorProfile = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading doctor info: $e');
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _doctorInfo = null;
+        _loadingDoctorProfile = false;
+      });
     }
   }
 
@@ -77,8 +102,16 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                       index: _selectedIndex,
                       children: [
                         _buildOverviewTab(isMobile),
-                        DoctorScheduleScreen(doctorId: doctorId),
-                        DoctorProfileEditScreen(doctorId: doctorId),
+                        DoctorScheduleScreen(
+                          doctorId: doctorId,
+                          isDoctorProfileLoading: _loadingDoctorProfile,
+                          onOpenProfile: () => setState(() => _selectedIndex = 2),
+                        ),
+                        DoctorProfileEditScreen(
+                          userId: widget.user?.userId ?? '',
+                          doctorId: _doctorInfo?.id,
+                          onSaved: _loadDoctorProfile,
+                        ),
                         DoctorPersonalInfoScreen(user: widget.user),
                         const ChatListScreen(isEmbedded: true),
                       ],
@@ -107,16 +140,18 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
               itemCount: _menuItems.length,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemBuilder: (context, index) {
-                bool isSelected = _selectedIndex == index;
+                final isSelected = _selectedIndex == index;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     onTap: () {
                       setState(() => _selectedIndex = index);
-                      if (isDrawer) Navigator.pop(context);
+                      if (isDrawer) {
+                        Navigator.pop(context);
+                      }
                     },
                     selected: isSelected,
-                    selectedTileColor: const Color(0xFF38A3A5).withOpacity(0.12),
+                    selectedTileColor: const Color(0xFF38A3A5).withValues(alpha: 0.12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     leading: Icon(
                       _menuItems[index]['icon'],
@@ -149,7 +184,12 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
           decoration: BoxDecoration(
             color: const Color(0xFF38A3A5),
             borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: const Color(0xFF38A3A5).withOpacity(0.3), blurRadius: 10)],
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF38A3A5).withValues(alpha: 0.3),
+                blurRadius: 10,
+              ),
+            ],
           ),
           child: const Icon(Icons.medical_services_rounded, color: Colors.white, size: 24),
         ),
@@ -175,9 +215,9 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
           await _authService.logout();
           if (mounted) {
             Navigator.pushAndRemoveUntil(
-              context, 
+              context,
               MaterialPageRoute(builder: (context) => const LoginScreen()),
-              (route) => false
+              (route) => false,
             );
           }
         },
@@ -199,12 +239,12 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${_doctorInfo?.degree != null ? '${_doctorInfo!.degree}. ' : ''}${(_doctorInfo?.fullName != null && _doctorInfo!.fullName != 'Bác sĩ') ? _doctorInfo!.fullName : (widget.user?.fullName ?? 'Bác sĩ')}', 
+                    '${_doctorInfo?.degree != null ? '${_doctorInfo!.degree}. ' : ''}${(_doctorInfo?.fullName != null && _doctorInfo!.fullName != 'Bác sĩ') ? _doctorInfo!.fullName : (widget.user?.fullName ?? 'Bác sĩ')}',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    _doctorInfo?.position ?? AppStrings.specialistDoctor, 
+                    _doctorInfo?.position ?? AppStrings.specialistDoctor,
                     style: const TextStyle(color: Colors.grey, fontSize: 11),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -229,7 +269,10 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       child: Row(
         children: [
           if (isMobile)
-            IconButton(icon: const Icon(Icons.menu), onPressed: () => _scaffoldKey.currentState?.openDrawer()),
+            IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            ),
           Text(
             _menuItems[_selectedIndex]['label'],
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
@@ -258,9 +301,13 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
             child: Container(
               width: 10,
               height: 10,
-              decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
             ),
-          )
+          ),
       ],
     );
   }
@@ -278,7 +325,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
           const SizedBox(height: 24),
           LayoutBuilder(
             builder: (context, constraints) {
-              int crossAxisCount = constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 800 ? 2 : 1);
+              final crossAxisCount = constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 800 ? 2 : 1);
               return GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -299,15 +346,9 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                flex: 2,
-                child: _buildAppointmentsPreview(),
-              ),
+              Expanded(flex: 2, child: _buildAppointmentsPreview()),
               if (!isMobile) const SizedBox(width: 24),
-              if (!isMobile)
-                Expanded(
-                  child: _buildSchedulePreview(),
-                ),
+              if (!isMobile) Expanded(child: _buildSchedulePreview()),
             ],
           ),
         ],
@@ -321,13 +362,15 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(width: 16),
@@ -387,7 +430,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
               ),
               child: const Text(AppStrings.setupNow, style: TextStyle(color: Colors.white)),
             ),
-          )
+          ),
         ],
       ),
     );

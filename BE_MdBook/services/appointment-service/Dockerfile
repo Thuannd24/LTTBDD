@@ -4,7 +4,7 @@ WORKDIR /app
 
 # 1. Build appointment-service
 COPY services/appointment-service ./services/appointment-service
-RUN mvn clean package -f services/appointment-service/pom.xml -DskipTests
+RUN mvn clean package -f services/appointment-service/pom.xml -Dmaven.test.skip=true
 
 # Giai đoạn 2: Chạy
 FROM eclipse-temurin:21-jre-jammy

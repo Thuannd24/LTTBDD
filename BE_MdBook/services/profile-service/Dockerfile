@@ -4,7 +4,7 @@ WORKDIR /app
 
 # 1. Build profile-service
 COPY services/profile-service ./services/profile-service
-RUN mvn clean package -f services/profile-service/pom.xml -DskipTests
+RUN mvn clean package -f services/profile-service/pom.xml -Dmaven.test.skip=true
 
 # Giai đoạn 2: Chạy
 FROM eclipse-temurin:21-jre-jammy

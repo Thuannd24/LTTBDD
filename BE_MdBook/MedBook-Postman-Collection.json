@@ -15,9 +15,9 @@
     { "key": "doctorId", "value": "", "type": "string" },
     { "key": "specialtyId", "value": "", "type": "string" },
     { "key": "scheduleId", "value": "", "type": "string" },
+    { "key": "requestId", "value": "", "type": "string" },
     { "key": "appointmentId", "value": "", "type": "string" },
     { "key": "packageId", "value": "", "type": "string" },
-    { "key": "packageStepId", "value": "", "type": "string" },
     { "key": "roomId", "value": "", "type": "string" },
     { "key": "equipmentId", "value": "", "type": "string" },
     { "key": "slotId", "value": "", "type": "string" }
@@ -302,14 +302,58 @@
           "name": "── Appointment ──",
           "item": [
             {
-              "name": "Đặt Lịch Khám",
+              "name": "Tạo Yêu Cầu Đặt Lịch",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": { "exec": ["var json = pm.response.json(); var id = json.id || (json.result ? json.result.id : null); if(id) pm.collectionVariables.set('requestId', id);"] }
+                }
+              ],
               "request": {
                 "method": "POST",
-                "url": "{{base_url}}/api/v1/appointment/appointments",
+                "url": "{{base_url}}/api/v1/appointment/appointment-requests",
                 "body": {
                   "mode": "raw",
                   "options": { "raw": { "language": "json" } },
-                  "raw": "{\n  \"packageId\": \"{{packageId}}\",\n  \"packageStepId\": \"{{packageStepId}}\",\n  \"doctorId\": \"{{doctorId}}\",\n  \"doctorScheduleId\": 1,\n  \"roomSlotId\": 1,\n  \"note\": \"Test E2E Booking\",\n  \"facilityId\": \"1\"\n}"
+                  "raw": "{\n  \"packageId\": \"{{packageId}}\",\n  \"doctorId\": \"{{doctorId}}\",\n  \"doctorScheduleId\": 1,\n  \"note\": \"Yêu cầu khám buổi sáng\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Yêu Cầu Đặt Lịch Của Tôi",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/appointment/appointment-requests/my" }
+            },
+            {
+              "name": "Danh Sách Yêu Cầu Chờ Duyệt",
+              "request": { "method": "GET", "url": "{{base_url}}/api/v1/appointment/appointment-requests/pending" }
+            },
+            {
+              "name": "Duyệt Yêu Cầu Và Tạo Lịch",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": { "exec": ["var json = pm.response.json(); var id = json.id || (json.result ? json.result.id : null); if(id) pm.collectionVariables.set('appointmentId', id);"] }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/appointment/appointment-requests/{{requestId}}/confirm",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"facilityId\": \"1\",\n  \"roomSlotId\": 1,\n  \"equipmentSlotId\": null\n}"
+                }
+              }
+            },
+            {
+              "name": "Từ Chối Yêu Cầu Đặt Lịch",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/appointment/appointment-requests/{{requestId}}/reject",
+                "body": {
+                  "mode": "raw",
+                  "options": { "raw": { "language": "json" } },
+                  "raw": "{\n  \"reason\": \"Không còn phòng phù hợp\"\n}"
                 }
               }
             },

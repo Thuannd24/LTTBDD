@@ -1,54 +1,89 @@
 openapi: 3.0.3
 info:
   title: Chat Service API
-  description: |
-    API quản lý hội thoại và tin nhắn thời gian thực. 
-    Lưu ý: Luồng tin nhắn chính sử dụng Socket.IO.
   version: 1.0.0
+  description: |
+    REST API va Socket.IO contract cho chat-service hien tai.
+    Qua API Gateway, base path REST la `/api/v1/chat`.
+    Socket.IO dung path `/api/v1/chat/socket.io`.
 
 servers:
   - url: /api/v1/chat
-    description: Truy cập qua API Gateway
+    description: API Gateway
+
+tags:
+  - name: Health
+  - name: Conversations
+  - name: Socket
 
 paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check cua chat-service
+      responses:
+        '200':
+          description: Service dang hoat dong
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
   /conversations:
     get:
       tags:
         - Conversations
-      summary: Lấy danh sách các cuộc hội thoại của người dùng hiện tại
+      summary: Lay danh sach conversation cua user hien tai
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Thành công
+          description: Lay danh sach thanh cong
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ConversationResponse'
-
-  /conversations/{conversationId}/messages:
-    get:
+                $ref: '#/components/schemas/ListConversationsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
       tags:
-        - Messages
-      summary: Lấy lịch sử tin nhắn trong một cuộc hội thoại (có phân trang)
+        - Conversations
+      summary: Tao hoac lay conversation 1-1 voi user khac
       security:
         - bearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
       responses:
-        '200':
-          description: Danh sách tin nhắn
+        '201':
+          description: Tao hoac tra ve conversation thanh cong
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateConversationResponse'
+        '400':
+          description: Thieu hoac sai `targetUserId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              examples:
+                missingTargetUserId:
+                  value:
+                    status: 400
+                    message: targetUserId is required
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
 components:
   securitySchemes:
@@ -56,39 +91,392 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  
+
+  responses:
+    Unauthorized:
+      description: Access token khong hop le hoac thieu token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: User khong duoc phep truy cap resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Loi he thong
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
   schemas:
-    ConversationResponse:
+    HealthResponse:
       type: object
+      required:
+        - status
+        - service
+        - timestamp
       properties:
-        id: { type: string }
-        participants: { type: array, items: { type: string } }
-        lastMessage: { type: string }
-        updatedAt: { type: string, format: date-time }
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: chat-service
+        timestamp:
+          type: string
+          format: date-time
 
-    MessageResponse:
+    CreateConversationRequest:
       type: object
+      required:
+        - targetUserId
       properties:
-        id: { type: string }
-        conversationId: { type: string }
-        senderId: { type: string }
-        content: { type: string }
-        status: { type: string, enum: [SENT, DELIVERED, READ] }
-        createdAt: { type: string, format: date-time }
+        targetUserId:
+          type: string
+          example: 3f9d7f14-5683-4d7c-8a1f-7d3dfaa129f2
 
-x-web-socket:
-  protocol: Socket.IO
+    ConversationSummary:
+      type: object
+      required:
+        - id
+        - participantIds
+        - otherParticipant
+        - updatedAt
+      properties:
+        id:
+          type: string
+          example: 680768f5056d9183ec6f5012
+        participantIds:
+          type: array
+          items:
+            type: string
+          example:
+            - patient-user-id
+            - doctor-user-id
+        otherParticipant:
+          $ref: '#/components/schemas/ParticipantSummary'
+        lastMessage:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/LastMessageSummary'
+        updatedAt:
+          type: string
+          format: date-time
+
+    ParticipantSummary:
+      type: object
+      required:
+        - userId
+        - role
+        - displayName
+        - avatarUrl
+      properties:
+        userId:
+          type: string
+        role:
+          type: string
+          nullable: true
+          example: ROLE_DOCTOR
+        displayName:
+          type: string
+          nullable: true
+          example: Dr. Nguyen Van A
+        avatarUrl:
+          type: string
+          nullable: true
+          example: https://example.com/avatar.png
+
+    LastMessageSummary:
+      type: object
+      required:
+        - id
+        - senderId
+        - content
+        - contentType
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          nullable: true
+        senderId:
+          type: string
+        content:
+          type: string
+        contentType:
+          type: string
+          enum:
+            - TEXT
+        status:
+          type: string
+          enum:
+            - SENT
+            - DELIVERED
+            - READ
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    SocketMessage:
+      type: object
+      required:
+        - id
+        - conversationId
+        - senderId
+        - recipientId
+        - content
+        - contentType
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+        conversationId:
+          type: string
+        senderId:
+          type: string
+        recipientId:
+          type: string
+        content:
+          type: string
+        contentType:
+          type: string
+          enum:
+            - TEXT
+        status:
+          type: string
+          enum:
+            - SENT
+            - DELIVERED
+            - READ
+        createdAt:
+          type: string
+          format: date-time
+
+    MessageReceipt:
+      type: object
+      required:
+        - messageId
+        - conversationId
+        - senderId
+        - recipientId
+        - status
+      properties:
+        messageId:
+          type: string
+        conversationId:
+          type: string
+        senderId:
+          type: string
+        recipientId:
+          type: string
+        status:
+          type: string
+          enum:
+            - DELIVERED
+            - READ
+
+    ListConversationsResponse:
+      type: object
+      required:
+        - status
+        - message
+        - data
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: Conversations retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationSummary'
+
+    CreateConversationResponse:
+      type: object
+      required:
+        - status
+        - message
+        - data
+      properties:
+        status:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: Conversation created successfully
+        data:
+          $ref: '#/components/schemas/ConversationSummary'
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: targetUserId is required
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          oneOf:
+            - type: integer
+            - type: string
+          example: 0
+        message:
+          type: string
+          example: Internal server error
+        code:
+          type: string
+          nullable: true
+          example: INTERNAL_ERROR
+        correlationId:
+          type: string
+          nullable: true
+          example: 7c119f5b-8adc-4ae1-a418-b0cd0a75d2c3
+
+x-socket-io:
   path: /api/v1/chat/socket.io
+  auth:
+    type: bearer
+    description: |
+      Truyen JWT qua `auth.token`, query `token`, hoac header `Authorization`.
   events:
-    message:send:
-      description: Gửi tin nhắn mới
-      payload:
-        type: object
-        properties:
-          conversationId: { type: string }
-          content: { type: string }
-          contentType: { type: string, default: TEXT }
-    message:new:
-      description: Nhận tin nhắn mới (Server emit)
-      payload:
-        $ref: '#/components/schemas/MessageResponse'
+    client_to_server:
+      - name: conversation:list
+        ack: false
+        payload:
+          type: object
+          additionalProperties: false
+        responseEvent: conversation:list
+        responsePayload:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationSummary'
+      - name: conversation:join
+        ack: false
+        payload:
+          type: object
+          required:
+            - conversationId
+          properties:
+            conversationId:
+              type: string
+      - name: message:history
+        ack: false
+        payload:
+          type: object
+          required:
+            - conversationId
+          properties:
+            conversationId:
+              type: string
+            before:
+              type: string
+              format: date-time
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 30
+      - name: message:send
+        ack: false
+        payload:
+          type: object
+          required:
+            - conversationId
+            - content
+          properties:
+            conversationId:
+              type: string
+            content:
+              type: string
+            contentType:
+              type: string
+              enum:
+                - TEXT
+              default: TEXT
+      - name: message:delivered
+        ack: false
+        payload:
+          type: object
+          required:
+            - conversationId
+          properties:
+            conversationId:
+              type: string
+            messageId:
+              type: string
+      - name: message:read
+        ack: false
+        payload:
+          type: object
+          required:
+            - conversationId
+          properties:
+            conversationId:
+              type: string
+            messageId:
+              type: string
+    server_to_client:
+      - name: conversation:list
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationSummary'
+      - name: conversation:joined
+        payload:
+          type: object
+          required:
+            - conversationId
+          properties:
+            conversationId:
+              type: string
+      - name: message:history
+        payload:
+          type: object
+          required:
+            - conversationId
+            - messages
+          properties:
+            conversationId:
+              type: string
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/SocketMessage'
+      - name: message:new
+        payload:
+          $ref: '#/components/schemas/SocketMessage'
+      - name: message:delivered
+        payload:
+          $ref: '#/components/schemas/MessageReceipt'
+      - name: message:read
+        payload:
+          $ref: '#/components/schemas/MessageReceipt'
+      - name: chat:error
+        payload:
+          type: object
+          properties:
+            message:
+              type: string
+
+    notes:
+      - REST endpoint `/conversations/{conversationId}/messages` khong ton tai trong implementation hien tai.
+      - Upload/image/file endpoints khong duoc mount trong `server.js`, nen khong duoc liet ke la public API.

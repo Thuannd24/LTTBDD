@@ -1,15 +1,14 @@
 openapi: 3.0.0
 info:
   title: Appointment Service API
-  version: 1.0.0
-  description: Synchronous appointment booking API.
+  version: 2.0.0
+  description: Appointment request and confirmation API.
 
 paths:
-  /appointments:
+  /appointment-requests:
     post:
-      summary: Create a new appointment
-      description: Creates an appointment and reserves required resources immediately.
-      operationId: createAppointment
+      summary: Patient creates an appointment request
+      operationId: createAppointmentRequest
       security:
         - bearerAuth: []
       requestBody:
@@ -17,28 +16,140 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateAppointmentRequest'
+              $ref: '#/components/schemas/AppointmentRequestCreateRequest'
       responses:
         '201':
-          description: Appointment created
+          description: Appointment request created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseCreateAppointmentResponse'
+                $ref: '#/components/schemas/ApiResponseAppointmentRequest'
         '400':
           description: Invalid input
         '401':
           description: Unauthorized
+
+  /appointment-requests/my:
+    get:
+      summary: Patient gets own appointment requests
+      operationId: getMyAppointmentRequests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Appointment requests page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointmentRequestPage'
+
+  /appointment-requests/{id}:
+    get:
+      summary: Get appointment request detail
+      operationId: getAppointmentRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Appointment request detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointmentRequest'
+        '403':
+          description: Forbidden
         '404':
-          description: Package or resource not found
-        '409':
-          description: Business rule violation
-        '500':
-          description: Server error
+          description: Appointment request not found
+
+  /appointment-requests/pending:
+    get:
+      summary: Staff or doctor gets pending requests
+      operationId: getPendingAppointmentRequests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending appointment requests page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointmentRequestPage'
+        '403':
+          description: Forbidden
+
+  /appointment-requests/{id}/confirm:
+    post:
+      summary: Staff or doctor confirms a request and creates an appointment
+      operationId: confirmAppointmentRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentRequestConfirmRequest'
+      responses:
+        '200':
+          description: Appointment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointment'
+        '400':
+          description: Invalid input
+        '403':
+          description: Forbidden
+        '404':
+          description: Appointment request not found
+
+  /appointment-requests/{id}/reject:
+    post:
+      summary: Staff or doctor rejects a request
+      operationId: rejectAppointmentRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentRequestRejectRequest'
+      responses:
+        '200':
+          description: Appointment request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointmentRequest'
+        '400':
+          description: Invalid input
+        '403':
+          description: Forbidden
+        '404':
+          description: Appointment request not found
 
   /appointments/{id}:
     get:
-      summary: Get appointment detail
+      summary: Get confirmed appointment detail
       operationId: getAppointment
       security:
         - bearerAuth: []
@@ -64,7 +175,7 @@ paths:
 
   /appointments/{id}/status:
     get:
-      summary: Get appointment status
+      summary: Get confirmed appointment status
       operationId: getAppointmentStatus
       security:
         - bearerAuth: []
@@ -84,8 +195,7 @@ paths:
 
   /appointments/{id}/cancel:
     post:
-      summary: Cancel an appointment
-      description: Cancels the appointment and releases reserved resources immediately.
+      summary: Cancel a confirmed appointment
       operationId: cancelAppointment
       security:
         - bearerAuth: []
@@ -108,43 +218,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseAppointment'
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized
+
+  /appointments/{id}/complete:
+    post:
+      summary: Complete a confirmed appointment and release reserved resources
+      operationId: completeAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Appointment completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointment'
         '403':
           description: Forbidden
-        '404':
-          description: Appointment not found
-        '500':
-          description: Server error
 
 components:
   schemas:
-    CreateAppointmentRequest:
+    AppointmentRequestCreateRequest:
       type: object
       required:
         - packageId
-        - packageStepId
         - doctorId
         - doctorScheduleId
-        - roomSlotId
       properties:
         packageId:
-          type: string
-        packageStepId:
           type: string
         doctorId:
           type: string
         doctorScheduleId:
           type: integer
+        note:
+          type: string
+
+    AppointmentRequestConfirmRequest:
+      type: object
+      required:
+        - facilityId
+        - roomSlotId
+      properties:
+        facilityId:
+          type: string
         roomSlotId:
           type: integer
         equipmentSlotId:
           type: integer
-        note:
-          type: string
-        facilityId:
+
+    AppointmentRequestRejectRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
           type: string
 
     CancelAppointmentRequest:
@@ -155,14 +288,49 @@ components:
         reason:
           type: string
 
-    CreateAppointmentResponse:
+    AppointmentRequestResponse:
       type: object
       properties:
-        appointmentId:
+        id:
           type: string
+        patientUserId:
+          type: string
+        doctorId:
+          type: string
+        doctorScheduleId:
+          type: integer
+        packageId:
+          type: string
+        facilityId:
+          type: string
+        roomSlotId:
+          type: integer
+        equipmentSlotId:
+          type: integer
         status:
           type: string
-          example: CONFIRMED
+          enum:
+            - PENDING_ASSIGNMENT
+            - CONFIRMED
+            - REJECTED
+            - CANCELLED
+        note:
+          type: string
+        appointmentId:
+          type: string
+        processedBy:
+          type: string
+        processedAt:
+          type: string
+          format: date-time
+        rejectionReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     AppointmentResponse:
       type: object
@@ -179,22 +347,15 @@ components:
           type: string
         packageId:
           type: string
-        packageStepId:
-          type: string
         status:
           type: string
           enum:
             - CONFIRMED
-            - BOOKING_FAILED
             - CANCELLED
-            - CANCELLATION_FAILED
+            - COMPLETED
         note:
           type: string
         cancelReason:
-          type: string
-        failureCode:
-          type: string
-        failureMessage:
           type: string
         createdAt:
           type: string
@@ -208,16 +369,29 @@ components:
       properties:
         status:
           type: string
-        failureCode:
-          type: string
-        failureMessage:
-          type: string
 
-    ApiResponseCreateAppointmentResponse:
+    AppointmentRequestPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentRequestResponse'
+        totalElements:
+          type: integer
+          format: int64
+
+    ApiResponseAppointmentRequest:
       type: object
       properties:
         result:
-          $ref: '#/components/schemas/CreateAppointmentResponse'
+          $ref: '#/components/schemas/AppointmentRequestResponse'
+
+    ApiResponseAppointmentRequestPage:
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/AppointmentRequestPage'
 
     ApiResponseAppointment:
       type: object

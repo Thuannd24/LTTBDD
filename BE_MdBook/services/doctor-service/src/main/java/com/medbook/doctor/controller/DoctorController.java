@@ -33,7 +33,7 @@ public class DoctorController {
     DoctorService doctorService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_DOCTOR')")
     public ApiResponse<DoctorResponse> createDoctor(@RequestBody @Valid DoctorRequest request) {
         return ApiResponse.<DoctorResponse>builder()
                 .result(doctorService.createDoctor(request))

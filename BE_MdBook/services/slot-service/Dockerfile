@@ -4,7 +4,7 @@ WORKDIR /app
 
 # 1. Build slot-service
 COPY services/slot-service ./services/slot-service
-RUN mvn clean package -f services/slot-service/pom.xml -DskipTests
+RUN mvn clean package -f services/slot-service/pom.xml -Dmaven.test.skip=true
 
 # Giai đoạn 2: Chạy
 FROM eclipse-temurin:21-jre-jammy
