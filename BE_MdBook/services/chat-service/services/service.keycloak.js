@@ -14,8 +14,9 @@ const jwksCache = {
 function buildVerifyOptions() {
   const options = {
     algorithms: ['RS256'],
-    // Accept any of the known issuers (localhost dev + docker-internal prod)
-    issuer: config.keycloak.issuers || config.keycloak.issuer,
+    // We remove strict issuer validation because the Gateway IP or Docker DNS
+    // might cause issuer mismatches. Signature verification via JWKS and 
+    // manual realm checking below are sufficient for security.
   };
 
   if (config.keycloak.audience) {

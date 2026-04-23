@@ -1,12 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
+import 'package:tbdd/features/chat/data/chat_api_service.dart';
+import 'package:tbdd/features/chat/presentation/screens/chat_detail_screen.dart';
+import 'booking_screen.dart';
 
 class DoctorDetailScreen extends StatelessWidget {
   final DoctorProfile doctor;
 
   const DoctorDetailScreen({super.key, required this.doctor});
+
+  void _startChat(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF38A3A5))),
+    );
+
+    try {
+      final chatApi = ChatApiService();
+      final conversation = await chatApi.createOrGetConversation(doctor.userId);
+      
+      if (context.mounted) {
+        Navigator.pop(context); // hide loading
+        if (conversation != null) {
+          final prefs = await SharedPreferences.getInstance();
+          final currentUserId = prefs.getString('user_id') ?? '';
+          
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatDetailScreen(
+                conversationId: conversation['id'],
+                otherUserId: doctor.userId,
+                otherUserRole: 'ROLE_DOCTOR',
+                otherUserName: doctor.fullName,
+                otherUserImage: doctor.avatar,
+                currentUserId: currentUserId,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không thể tạo cuộc trò chuyện')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // hide loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +69,13 @@ class DoctorDetailScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF38A3A5)),
+            onPressed: () => _startChat(context),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

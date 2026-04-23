@@ -5,6 +5,8 @@ import 'package:tbdd/features/user/screens/user_profile_edit_screen.dart';
 import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
 import 'package:tbdd/features/auth/presentation/screens/password_change_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tbdd/features/chat/data/chat_socket_service.dart';
+import 'package:tbdd/features/chat/data/profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -172,12 +174,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton(
-          onPressed: () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-              (route) => false,
-            );
+          onPressed: () async {
+            ProfileService.instance.clearCache();
+            await _authService.logout();
+            ChatSocketService().disconnect();
+            if (context.mounted) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            }
           },
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 15),

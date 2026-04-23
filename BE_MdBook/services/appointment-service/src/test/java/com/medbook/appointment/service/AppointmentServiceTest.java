@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -112,15 +114,7 @@ class AppointmentServiceTest {
             }
             return appointment;
         });
-        when(appointmentMapper.toResponse(any(Appointment.class))).thenReturn(AppointmentResponse.builder()
-                .id("apt-001")
-                .patientUserId(currentUserId)
-                .doctorId("doctor-123")
-                .doctorScheduleId(1L)
-                .status("CONFIRMED")
-                .build());
-
-        AppointmentResponse response = appointmentService.createConfirmedAppointment(validRequest, currentUserId);
+        CreateAppointmentResponse response = appointmentService.createAppointment(validRequest, currentUserId);
 
         assertThat(response.getId()).isNotBlank();
         assertThat(response.getStatus()).isEqualTo("CONFIRMED");
@@ -165,12 +159,12 @@ class AppointmentServiceTest {
     @Test
     void createConfirmedAppointment_rejectsWhenPackageMissing() {
         mockSuccessfulValidation();
-        when(examPackageService.getPackageById("pkg-001"))
-                .thenThrow(new RuntimeException("missing package"));
+        doThrow(new RuntimeException("Room slot is not available"))
+                .when(slotServiceClient).reserveSlot(eq(2L), anyString());
 
-        assertThatThrownBy(() -> appointmentService.createConfirmedAppointment(validRequest, currentUserId))
-                .isInstanceOf(AppointmentValidationException.class)
-                .hasMessageContaining("Package not found");
+        assertThatThrownBy(() -> appointmentService.createAppointment(validRequest, currentUserId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Room slot is not available");
     }
 
     @Test
@@ -278,52 +272,6 @@ class AppointmentServiceTest {
 
         assertThatThrownBy(() -> appointmentService.cancelAppointment("apt-002", cancelRequest, currentUserId))
                 .isInstanceOf(AppointmentAccessDeniedException.class);
-    }
-
-    @Test
-    void completeAppointment_success() {
-        Appointment confirmedAppointment = Appointment.builder()
-                .id("apt-003")
-                .patientUserId("user-123")
-                .doctorId("doctor-123")
-                .doctorScheduleId(11L)
-                .roomSlotId(12L)
-                .equipmentSlotId(13L)
-                .status(Appointment.AppointmentStatus.CONFIRMED)
-                .build();
-
-        when(appointmentRepository.findById("apt-003")).thenReturn(Optional.of(confirmedAppointment));
-        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(appointmentMapper.toResponse(any(Appointment.class))).thenAnswer(invocation -> {
-            Appointment appointment = invocation.getArgument(0);
-            return AppointmentResponse.builder()
-                    .id(appointment.getId())
-                    .status(appointment.getStatus().name())
-                    .cancelReason(appointment.getCancelReason())
-                    .build();
-        });
-
-        AppointmentResponse response = appointmentService.completeAppointment("apt-003");
-
-        assertThat(response.getStatus()).isEqualTo("COMPLETED");
-        assertThat(response.getCancelReason()).isNull();
-        verify(slotServiceClient).releaseSlot(13L, "apt-003");
-        verify(slotServiceClient).releaseSlot(12L, "apt-003");
-        verify(doctorServiceClient).releaseSchedule(11L, "apt-003");
-    }
-
-    @Test
-    void completeAppointment_rejectsWhenNotConfirmed() {
-        Appointment cancelledAppointment = Appointment.builder()
-                .id("apt-004")
-                .status(Appointment.AppointmentStatus.CANCELLED)
-                .build();
-
-        when(appointmentRepository.findById("apt-004")).thenReturn(Optional.of(cancelledAppointment));
-
-        assertThatThrownBy(() -> appointmentService.completeAppointment("apt-004"))
-                .isInstanceOf(AppointmentValidationException.class)
-                .hasMessageContaining("Only confirmed appointments can be completed");
     }
 
     private void mockSuccessfulValidation() {

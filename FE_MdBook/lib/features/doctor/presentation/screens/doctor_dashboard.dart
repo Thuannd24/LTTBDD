@@ -9,6 +9,10 @@ import 'package:tbdd/features/doctor/presentation/screens/doctor_personal_info_s
 import 'package:tbdd/features/doctor/presentation/screens/doctor_profile_edit_screen.dart';
 import 'package:tbdd/features/doctor/presentation/screens/doctor_schedule_screen.dart';
 
+import 'package:tbdd/features/chat/presentation/screens/chat_list_screen.dart';
+import 'package:tbdd/features/chat/data/profile_service.dart';
+import 'package:tbdd/features/chat/data/chat_socket_service.dart';
+
 class DoctorDashboard extends StatefulWidget {
   final UserProfile? user;
 
@@ -78,8 +82,8 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 900;
-    final doctorId = _doctorInfo?.id ?? 'doctor_id';
+    bool isMobile = MediaQuery.of(context).size.width < 900;
+    String doctorId = _doctorInfo?.userId ?? widget.user?.userId ?? '';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -109,7 +113,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                           onSaved: _loadDoctorProfile,
                         ),
                         DoctorPersonalInfoScreen(user: widget.user),
-                        const Center(child: Text(AppStrings.messagesComingSoon)),
+                        const ChatListScreen(isEmbedded: true),
                       ],
                     ),
                   ),
@@ -206,6 +210,8 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       ),
       child: InkWell(
         onTap: () async {
+          ProfileService.instance.clearCache();
+          ChatSocketService().disconnect();
           await _authService.logout();
           if (mounted) {
             Navigator.pushAndRemoveUntil(
