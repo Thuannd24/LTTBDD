@@ -85,8 +85,7 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
 
     
     List<dynamic>? roomSlots;
-    dynamic selectedRoomSlot;
-    
+    Set<dynamic> selectedRoomSlots = {};
     DateTime selectedDate = DateTime.now();
     bool loadingSlots = false;
     bool submitting = false;
@@ -100,7 +99,6 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
             setDialogState(() => loadingSlots = true);
             try {
               final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
-              // Fetch facility slots
               final resp = await ApiClient().get('/slot/slots/facility/available?facilityId=1&date=$dateStr');
               if (resp.statusCode == 200) {
                 final data = jsonDecode(resp.body);
@@ -122,65 +120,113 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
             }
           }
 
-          // Initial load
           if (roomSlots == null && !loadingSlots) {
             loadSlots();
           }
 
           return AlertDialog(
-            title: const Text('Đăng ký lịch làm việc'),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('Đăng ký lịch làm việc', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A4A7C))),
             content: SizedBox(
               width: 500,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      TextButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                          );
-                          if (picked != null && picked != selectedDate) {
-                            setDialogState(() {
-                              selectedDate = picked;
-                              roomSlots = null;
-                            });
-                            loadSlots();
-                          }
-                        },
-                        child: const Text('Đổi ngày'),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF38A3A5).withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today, size: 18, color: Color(0xFF38A3A5)),
+                            const SizedBox(width: 8),
+                            Text(DateFormat('dd/MM/yyyy').format(selectedDate), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null && picked != selectedDate) {
+                              setDialogState(() {
+                                selectedDate = picked;
+                                roomSlots = null;
+                                selectedRoomSlots.clear();
+                              });
+                              loadSlots();
+                            }
+                          },
+                          child: const Text('Đổi ngày'),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Divider(),
-                  const Text('Chọn khung giờ trống:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Chọn các khung giờ (có thể chọn nhiều):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
+                  const SizedBox(height: 12),
                   if (loadingSlots)
-                    const CircularProgressIndicator()
+                    const Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(color: Color(0xFF38A3A5)),
+                    )
                   else if (roomSlots == null || roomSlots!.isEmpty)
-                    const Text('Không có khung giờ trống nào trong ngày này.', style: TextStyle(color: Colors.grey))
+                    const Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text('Không có khung giờ trống nào.', style: TextStyle(color: Colors.grey)),
+                    )
                   else
                     SizedBox(
-                      height: 200,
+                      height: 300,
                       child: ListView.builder(
                         itemCount: roomSlots!.length,
                         itemBuilder: (ctx, i) {
                           final s = roomSlots![i];
-                          final isSelected = selectedRoomSlot?['id'] == s['id'];
+                          final isSelected = selectedRoomSlots.any((item) => item['id'] == s['id']);
                           final start = DateTime.parse(s['startTime']);
                           final end = DateTime.parse(s['endTime']);
-                          return ListTile(
-                            selected: isSelected,
-                            selectedTileColor: const Color(0xFF38A3A5).withOpacity(0.1),
-                            title: Text('${DateFormat('HH:mm').format(start)} - ${DateFormat('HH:mm').format(end)}'),
-                            subtitle: Text(DateFormat('dd/MM/yyyy').format(start)),
-                            onTap: () => setDialogState(() => selectedRoomSlot = s),
+                          return Card(
+                            elevation: 0,
+                            color: isSelected ? const Color(0xFF38A3A5).withOpacity(0.1) : Colors.grey[50],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: isSelected ? const Color(0xFF38A3A5) : Colors.transparent,
+                                width: 1,
+                              ),
+                            ),
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: CheckboxListTile(
+                              value: isSelected,
+                              activeColor: const Color(0xFF38A3A5),
+                              title: Text(
+                                '${DateFormat('HH:mm').format(start)} - ${DateFormat('HH:mm').format(end)}',
+                                style: TextStyle(
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected ? const Color(0xFF38A3A5) : Colors.black87,
+                                ),
+                              ),
+                              onChanged: (val) {
+                                setDialogState(() {
+                                  if (val == true) {
+                                    selectedRoomSlots.add(s);
+                                  } else {
+                                    selectedRoomSlots.removeWhere((item) => item['id'] == s['id']);
+                                  }
+                                });
+                              },
+                            ),
                           );
                         },
                       ),
@@ -189,32 +235,49 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Hủy')),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+              ),
               ElevatedButton(
-                onPressed: (submitting || selectedRoomSlot == null)
+                onPressed: (submitting || selectedRoomSlots.isEmpty)
                     ? null
                     : () async {
                         setDialogState(() => submitting = true);
                         try {
-                          final start = DateTime.parse(selectedRoomSlot['startTime']);
-                          final end = DateTime.parse(selectedRoomSlot['endTime']);
-                          
-                          await _doctorScheduleService.createSchedule(
-                            doctorId: widget.doctorId,
-                            startTime: start,
-                            endTime: end,
-                            roomSlotId: selectedRoomSlot['id'],
-                          );
+                          int successCount = 0;
+                          for (final slot in selectedRoomSlots) {
+                            final start = DateTime.parse(slot['startTime']);
+                            final end = DateTime.parse(slot['endTime']);
+                            
+                            await _doctorScheduleService.createSchedule(
+                              doctorId: widget.doctorId,
+                              startTime: start,
+                              endTime: end,
+                              roomSlotId: slot['id'],
+                            );
+                            successCount++;
+                          }
 
                           navigator.pop();
                           _load();
-                          scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Đăng ký lịch thành công')));
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(content: Text('Đăng ký thành công $successCount khung giờ')),
+                          );
                         } catch (e) {
                           scaffoldMessenger.showSnackBar(SnackBar(content: Text('Lỗi: $e')));
                           setDialogState(() => submitting = false);
                         }
                       },
-                child: submitting ? const CircularProgressIndicator() : const Text('Đăng ký'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF38A3A5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: submitting 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                  : Text('Đăng ký (${selectedRoomSlots.length})'),
               ),
             ],
           );

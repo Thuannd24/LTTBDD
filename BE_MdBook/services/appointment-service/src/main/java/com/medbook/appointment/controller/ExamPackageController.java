@@ -25,12 +25,14 @@ public class ExamPackageController {
     
     /**
      * GET /exam-packages
-     * Lấy danh sách tất cả packages (có phân trang)
+     * Lấy danh sách tất cả packages (có phân trang, lọc theo chuyên khoa)
      */
     @GetMapping
-    public ApiResponse<Page<ExamPackageResponse>> getAllPackages(Pageable pageable) {
+    public ApiResponse<Page<ExamPackageResponse>> getAllPackages(
+            @RequestParam(required = false) String specialtyId,
+            Pageable pageable) {
         return ApiResponse.<Page<ExamPackageResponse>>builder()
-                .result(packageService.getAllPackages(pageable))
+                .result(packageService.getAllPackages(specialtyId, pageable))
                 .build();
     }
     

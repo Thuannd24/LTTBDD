@@ -23,9 +23,13 @@ public class ExamPackageService {
     ExamPackageMapper mapper;
     
     /**
-     * Lấy danh sách tất cả packages với phân trang
+     * Lấy danh sách tất cả packages với phân trang (có lọc theo chuyên khoa)
      */
-    public Page<ExamPackageResponse> getAllPackages(Pageable pageable) {
+    public Page<ExamPackageResponse> getAllPackages(String specialtyId, Pageable pageable) {
+        if (specialtyId != null && !specialtyId.isEmpty()) {
+            return repository.findBySpecialtyId(specialtyId, pageable)
+                    .map(mapper::toResponse);
+        }
         return repository.findAll(pageable)
                 .map(mapper::toResponse);
     }
