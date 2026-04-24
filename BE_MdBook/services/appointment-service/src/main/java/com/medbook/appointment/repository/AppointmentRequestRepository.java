@@ -10,4 +10,5 @@ import org.springframework.stereotype.Repository;
 public interface AppointmentRequestRepository extends JpaRepository<AppointmentRequest, String> {
     Page<AppointmentRequest> findByPatientUserIdOrderByCreatedAtDesc(String patientUserId, Pageable pageable);
     Page<AppointmentRequest> findByStatusOrderByCreatedAtAsc(AppointmentRequest.RequestStatus status, Pageable pageable);
+    java.util.Optional<AppointmentRequest> findByAppointmentId(String appointmentId);
 }

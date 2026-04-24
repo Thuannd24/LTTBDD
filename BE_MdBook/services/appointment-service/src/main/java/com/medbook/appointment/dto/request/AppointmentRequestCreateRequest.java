@@ -25,5 +25,7 @@ public class AppointmentRequestCreateRequest {
     @NotNull(message = "DOCTOR_SCHEDULE_ID_NULL")
     Long doctorScheduleId;
 
+    Long roomSlotId;
+
     String note;
 }

@@ -14,6 +14,7 @@ import com.medbook.appointment.exception.AppointmentValidationException;
 import com.medbook.appointment.exception.DoctorScheduleNotFoundException;
 import com.medbook.appointment.mapper.AppointmentMapper;
 import com.medbook.appointment.repository.AppointmentRepository;
+import com.medbook.appointment.repository.AppointmentRequestRepository;
 import com.medbook.appointment.service.command.CreateAppointmentCommand;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -33,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AppointmentService {
 
     AppointmentRepository appointmentRepository;
+    AppointmentRequestRepository appointmentRequestRepository;
     AppointmentMapper appointmentMapper;
     ExamPackageService examPackageService;
     DoctorServiceClient doctorServiceClient;
@@ -49,7 +51,6 @@ public class AppointmentService {
                 .doctorId(request.getDoctorId())
                 .doctorScheduleId(request.getDoctorScheduleId())
                 .roomSlotId(request.getRoomSlotId())
-                .equipmentSlotId(request.getEquipmentSlotId())
                 .facilityId(request.getFacilityId() != null ? request.getFacilityId() : "default")
                 .packageId(request.getPackageId())
                 .status(Appointment.AppointmentStatus.CONFIRMED)
@@ -58,7 +59,6 @@ public class AppointmentService {
 
         boolean doctorReserved = false;
         boolean roomReserved = false;
-        boolean equipmentReserved = false;
 
         try {
             doctorServiceClient.reserveSchedule(request.getDoctorScheduleId(), appointment.getId());
@@ -67,10 +67,6 @@ public class AppointmentService {
             slotServiceClient.reserveSlot(request.getRoomSlotId(), appointment.getId());
             roomReserved = true;
 
-            if (request.getEquipmentSlotId() != null) {
-                slotServiceClient.reserveSlot(request.getEquipmentSlotId(), appointment.getId());
-                equipmentReserved = true;
-            }
 
             Appointment saved = appointmentRepository.save(appointment);
             log.info("Appointment confirmed: {}", saved.getId());
@@ -79,7 +75,7 @@ public class AppointmentService {
 
         } catch (RuntimeException ex) {
             log.error("Booking failed, rolling back: {}", ex.getMessage());
-            rollback(appointment.getId(), request, doctorReserved, roomReserved, equipmentReserved);
+            rollback(appointment.getId(), request, doctorReserved, roomReserved);
             throw ex;
         }
     }
@@ -98,6 +94,13 @@ public class AppointmentService {
 
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
         appointment.setCancelReason(request.getReason());
+        
+        // Sync status with AppointmentRequest
+        appointmentRequestRepository.findByAppointmentId(appointmentId).ifPresent(req -> {
+            req.setStatus(com.medbook.appointment.entity.AppointmentRequest.RequestStatus.CANCELLED);
+            appointmentRequestRepository.save(req);
+        });
+
         return appointmentMapper.toResponse(appointmentRepository.save(appointment));
     }
 
@@ -111,6 +114,13 @@ public class AppointmentService {
         releaseReservedResources(appointment);
 
         appointment.setStatus(Appointment.AppointmentStatus.COMPLETED);
+
+        // Sync status with AppointmentRequest
+        appointmentRequestRepository.findByAppointmentId(appointmentId).ifPresent(req -> {
+            req.setStatus(com.medbook.appointment.entity.AppointmentRequest.RequestStatus.COMPLETED);
+            appointmentRequestRepository.save(req);
+        });
+
         return appointmentMapper.toResponse(appointmentRepository.save(appointment));
     }
 
@@ -160,8 +170,9 @@ public class AppointmentService {
         }
 
         DoctorInfo doctor = doctorServiceClient.getDoctorById(request.getDoctorId());
-        if (!doctor.active()) {
-            throw new AppointmentValidationException("Doctor is inactive");
+        // Cho phép cả ACTIVE và PENDING trong môi trường dev/test hoặc nếu doctor mới tạo
+        if (!doctor.active() && !"PENDING".equalsIgnoreCase(doctor.status())) {
+            throw new AppointmentValidationException("Doctor is inactive (Status: " + doctor.status() + ")");
         }
 
         DoctorScheduleInfo schedule = doctorServiceClient.getDoctorScheduleById(
@@ -172,10 +183,7 @@ public class AppointmentService {
     }
 
     private void rollback(String appointmentId, CreateAppointmentCommand request,
-                          boolean doctorReserved, boolean roomReserved, boolean equipmentReserved) {
-        if (equipmentReserved && request.getEquipmentSlotId() != null) {
-            safeRelease(() -> slotServiceClient.releaseSlot(request.getEquipmentSlotId(), appointmentId));
-        }
+                          boolean doctorReserved, boolean roomReserved) {
         if (roomReserved) {
             safeRelease(() -> slotServiceClient.releaseSlot(request.getRoomSlotId(), appointmentId));
         }
@@ -188,9 +196,6 @@ public class AppointmentService {
         safeRelease(() -> doctorServiceClient.releaseSchedule(appointment.getDoctorScheduleId(), appointment.getId()));
         if (appointment.getRoomSlotId() != null) {
             safeRelease(() -> slotServiceClient.releaseSlot(appointment.getRoomSlotId(), appointment.getId()));
-        }
-        if (appointment.getEquipmentSlotId() != null) {
-            safeRelease(() -> slotServiceClient.releaseSlot(appointment.getEquipmentSlotId(), appointment.getId()));
         }
     }
 

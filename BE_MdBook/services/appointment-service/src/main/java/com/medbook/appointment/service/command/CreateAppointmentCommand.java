@@ -18,7 +18,7 @@ public class CreateAppointmentCommand {
     String doctorId;
     Long doctorScheduleId;
     Long roomSlotId;
-    Long equipmentSlotId;
+
     String note;
     String facilityId;
 }

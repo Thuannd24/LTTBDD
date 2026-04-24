@@ -5,7 +5,6 @@ import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
 import 'package:tbdd/features/chat/data/chat_api_service.dart';
 import 'package:tbdd/features/chat/presentation/screens/chat_detail_screen.dart';
-import 'booking_screen.dart';
 
 class DoctorDetailScreen extends StatelessWidget {
   final DoctorProfile doctor;
@@ -61,10 +60,15 @@ class DoctorDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFB),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Hồ sơ chuyên gia',
+          style: TextStyle(color: Color(0xFF2D3142), fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
@@ -78,31 +82,13 @@ class DoctorDetailScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeaderCard(),
-            const SizedBox(height: 8),
-            _buildInfoSection(
-              title: 'Giới thiệu',
-              icon: Icons.info_outline,
-              content: doctor.biography ?? 'Chưa có thông tin giới thiệu chi tiết cho bác sĩ này.',
-            ),
-            _buildInfoSection(
-              title: 'Chức vụ',
-              icon: Icons.badge_outlined,
-              content: doctor.position ?? 'Chuyên gia y tế',
-            ),
-            _buildInfoSection(
-              title: 'Nơi làm việc',
-              icon: Icons.location_on_outlined,
-              content: doctor.workLocation ?? 'Hệ thống y tế đối tác',
-            ),
-            _buildInfoSection(
-              title: 'Dịch vụ chuyên sâu',
-              icon: Icons.medical_services_outlined,
-              content: doctor.services ?? 'Các dịch vụ khám chữa bệnh theo chuyên khoa.',
-            ),
+            const SizedBox(height: 16),
+            _buildDetailedInfoSection(),
             const SizedBox(height: 100),
           ],
         ),
@@ -114,76 +100,65 @@ class DoctorDetailScreen extends StatelessWidget {
   Widget _buildHeaderCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
         ),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10)),
-        ],
       ),
       child: Column(
         children: [
-          Row(
+          Stack(
+            alignment: Alignment.bottomRight,
             children: [
               Container(
-                width: 100,
-                height: 100,
+                width: 120,
+                height: 120,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                   image: DecorationImage(
                     image: doctor.avatar != null && doctor.avatar!.isNotEmpty
                         ? NetworkImage(doctor.avatar!)
                         : const NetworkImage('https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg'),
                     fit: BoxFit.cover,
                   ),
-                  border: Border.all(color: const Color(0xFFE0F2F1), width: 4),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2F1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        doctor.degree ?? 'Bác sĩ',
-                        style: const TextStyle(
-                          color: Color(0xFF38A3A5),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      doctor.fullName,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
-                    ),
-                    Text(
-                      doctor.position ?? 'Chuyên gia y tế',
-                      style: const TextStyle(color: Color(0xFF38A3A5), fontWeight: FontWeight.w600, fontSize: 14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF38A3A5).withOpacity(0.2),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
               ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF38A3A5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 16),
+              ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            doctor.fullName,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${doctor.degree ?? "Bác sĩ"} • ${doctor.position ?? "Chuyên gia y tế"}',
+            style: const TextStyle(color: Color(0xFF38A3A5), fontWeight: FontWeight.w600, fontSize: 14),
           ),
           const SizedBox(height: 24),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem('Kinh nghiệm', '${doctor.experienceYears} năm'),
-              _buildStatItem('Bệnh nhân', '100+'),
-              _buildStatItem('Trạng thái', doctor.status ?? 'Hoạt động'),
+              _buildModernStatItem('Kinh nghiệm', '${doctor.experienceYears} năm', Icons.history_edu),
+              _buildModernStatItem('Bệnh nhân', '500+', Icons.people_outline),
+              _buildModernStatItem('Đánh giá', '4.9', Icons.star_border),
             ],
           ),
         ],
@@ -191,32 +166,91 @@ class DoctorDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF38A3A5))),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-      ],
+  Widget _buildModernStatItem(String label, String value, IconData icon) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: const Color(0xFF38A3A5), size: 20),
+          const SizedBox(height: 8),
+          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D3142))),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w500)),
+        ],
+      ),
     );
   }
 
-  Widget _buildInfoSection({required String title, required IconData icon, required String content}) {
+  Widget _buildDetailedInfoSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          _buildInfoCard(
+            'Giới thiệu chuyên gia',
+            doctor.biography ?? 'Bác sĩ ${doctor.fullName} là chuyên gia giàu kinh nghiệm trong lĩnh vực y tế, luôn tận tâm với sự nghiệp chăm sóc sức khỏe cộng đồng.',
+            Icons.person_pin_outlined,
+            const Color(0xFFE0F2F1),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoCard(
+            'Dịch vụ chuyên biệt',
+            doctor.services ?? 'Thực hiện khám và điều trị các bệnh lý theo chuyên khoa chuyên sâu, tư vấn phác đồ điều trị cá thể hóa.',
+            Icons.medical_services_outlined,
+            const Color(0xFFE1F5FE),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoCard(
+            'Nơi làm việc & Công tác',
+            doctor.workLocation ?? 'Hiện đang công tác tại hệ thống bệnh viện đa khoa quốc tế, trung tâm can thiệp y tế kỹ thuật cao.',
+            Icons.location_on_outlined,
+            const Color(0xFFFFF3E0),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(String title, String content, IconData icon, Color bgColor) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: const Color(0xFF38A3A5), size: 20),
-              const SizedBox(width: 10),
-              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A4A7C))),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: const Color(0xFF38A3A5), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(content, style: const TextStyle(fontSize: 14, color: Color(0xFF4A4E69), height: 1.6)),
-          const Divider(height: 32, thickness: 1, color: Color(0xFFF5F5F5)),
+          const SizedBox(height: 16),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.6,
+              letterSpacing: 0.2,
+            ),
+          ),
         ],
       ),
     );

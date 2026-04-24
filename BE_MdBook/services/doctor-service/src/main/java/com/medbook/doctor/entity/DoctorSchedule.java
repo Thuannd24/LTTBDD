@@ -72,6 +72,9 @@ public class DoctorSchedule {
     @Column(name = "notes", length = 255)
     String notes;
 
+    @Column(name = "room_slot_id")
+    Long roomSlotId;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     LocalDateTime createdAt;

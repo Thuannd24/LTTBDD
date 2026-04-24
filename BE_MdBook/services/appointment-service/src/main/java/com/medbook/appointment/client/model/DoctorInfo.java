@@ -7,6 +7,7 @@ public record DoctorInfo(
         String name,
         String specialtyId,
         List<String> allowedSpecialtyIds,
-        boolean active
+        boolean active,
+        String status
 ) {
 }

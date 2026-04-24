@@ -2,9 +2,7 @@ package com.medbook.appointment.controller;
 
 import com.medbook.appointment.dto.ApiResponse;
 import com.medbook.appointment.dto.response.ExamPackageResponse;
-import com.medbook.appointment.dto.response.ExamPackageStepResponse;
 import com.medbook.appointment.service.ExamPackageService;
-import com.medbook.appointment.service.ExamPackageStepService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -24,16 +22,17 @@ import java.util.List;
 public class ExamPackageController {
     
     ExamPackageService packageService;
-    ExamPackageStepService stepService;
     
     /**
      * GET /exam-packages
-     * Lấy danh sách tất cả packages (có phân trang)
+     * Lấy danh sách tất cả packages (có phân trang, lọc theo chuyên khoa)
      */
     @GetMapping
-    public ApiResponse<Page<ExamPackageResponse>> getAllPackages(Pageable pageable) {
+    public ApiResponse<Page<ExamPackageResponse>> getAllPackages(
+            @RequestParam(required = false) String specialtyId,
+            Pageable pageable) {
         return ApiResponse.<Page<ExamPackageResponse>>builder()
-                .result(packageService.getAllPackages(pageable))
+                .result(packageService.getAllPackages(specialtyId, pageable))
                 .build();
     }
     
@@ -48,23 +47,4 @@ public class ExamPackageController {
                 .build();
     }
     
-    /**
-     * GET /exam-packages/{id}/steps
-     * Lấy danh sách steps của 1 package
-     */
-    @GetMapping("/{id}/steps")
-    public ApiResponse<List<ExamPackageStepResponse>> getPackageSteps(@PathVariable String id) {
-        return ApiResponse.<List<ExamPackageStepResponse>>builder()
-                .result(stepService.getStepsByPackageId(id))
-                .build();
-    }
-    
-    @GetMapping("/{packageId}/steps/{stepId}")
-    public ApiResponse<ExamPackageStepResponse> getPackageStepById(
-            @PathVariable String packageId,
-            @PathVariable String stepId) {
-        return ApiResponse.<ExamPackageStepResponse>builder()
-                .result(stepService.getStepById(stepId))
-                .build();
-    }
 }

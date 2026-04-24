@@ -5,6 +5,7 @@ class ExamPackageModel {
   final String? description;
   final String? status;
   final int? estimatedTotalMinutes;
+  final String? specialtyId;
 
   ExamPackageModel({
     required this.id,
@@ -13,6 +14,7 @@ class ExamPackageModel {
     this.description,
     this.status,
     this.estimatedTotalMinutes,
+    this.specialtyId,
   });
 
   factory ExamPackageModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class ExamPackageModel {
       description: json['description'],
       status: json['status'],
       estimatedTotalMinutes: (json['estimatedTotalMinutes'] as num?)?.toInt(),
+      specialtyId: json['specialtyId'],
     );
   }
 }

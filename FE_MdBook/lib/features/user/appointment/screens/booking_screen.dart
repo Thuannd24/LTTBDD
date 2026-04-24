@@ -8,6 +8,8 @@ import 'package:tbdd/features/auth/data/auth_service.dart';
 import 'package:tbdd/features/doctor/data/doctor_schedule_service.dart';
 import 'package:tbdd/features/user/appointment/data/exam_package_service.dart';
 import 'package:tbdd/features/user/appointment/screens/checkout_screen.dart';
+import 'package:tbdd/features/admin/data/specialty_service.dart';
+import 'package:tbdd/core/models/specialty_model.dart';
 import 'package:tbdd/features/user/appointment/screens/doctor_list_screen.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -23,17 +25,22 @@ class _BookingScreenState extends State<BookingScreen> {
   final AuthService _authService = AuthService();
   final ExamPackageService _examPackageService = ExamPackageService();
   final DoctorScheduleService _doctorScheduleService = DoctorScheduleService();
+  final SpecialtyService _specialtyService = SpecialtyService();
   final TextEditingController _reasonController = TextEditingController();
 
   UserProfile? _currentUser;
+  Specialty? _selectedSpecialty;
   DoctorProfile? _selectedDoctor;
   ExamPackageModel? _selectedPackage;
   DoctorScheduleModel? _selectedSchedule;
+  
+  List<Specialty> _specialties = [];
   List<ExamPackageModel> _packages = [];
   List<DoctorScheduleModel> _schedules = [];
   DateTime _selectedDate = DateTime.now();
   bool _loading = true;
   bool _loadingSchedules = false;
+  bool _loadingPackages = false;
 
   @override
   void initState() {
@@ -71,19 +78,21 @@ class _BookingScreenState extends State<BookingScreen> {
     try {
       final results = await Future.wait([
         _authService.getMyInfo(),
-        _examPackageService.fetchAll(),
+        _specialtyService.fetchAll(),
       ]);
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _currentUser = results[0] as UserProfile?;
-        _packages = results[1] as List<ExamPackageModel>;
-        if (_packages.isNotEmpty) {
-          _selectedPackage = _packages.first;
+        _specialties = (results[1] as List<Specialty>);
+        
+        if (_selectedDoctor != null && _selectedDoctor!.specialtyIds.isNotEmpty) {
+           final specId = _selectedDoctor!.specialtyIds.first;
+           _selectedSpecialty = _specialties.firstWhere((s) => s.id == specId, orElse: () => _specialties.first);
+           _loadPackagesForSpecialty(_selectedSpecialty?.id);
         }
+        
         _loading = false;
       });
 
@@ -91,10 +100,26 @@ class _BookingScreenState extends State<BookingScreen> {
         await _hydrateSelectedDoctor();
         await _loadSchedules();
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
       }
+    }
+  }
+
+  Future<void> _loadPackagesForSpecialty(String? specialtyId) async {
+    if (specialtyId == null) return;
+    setState(() => _loadingPackages = true);
+    try {
+      final pkgs = await _examPackageService.fetchAll(specialtyId: specialtyId);
+      if (!mounted) return;
+      setState(() {
+        _packages = pkgs;
+        _selectedPackage = _packages.isNotEmpty ? _packages.first : null;
+        _loadingPackages = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _loadingPackages = false);
     }
   }
 
@@ -135,22 +160,32 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Future<void> _pickDoctor() async {
-    final doctor = await Navigator.push<DoctorProfile>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DoctorListScreen(selectionMode: true),
-      ),
-    );
-
-    if (doctor == null) {
+    if (_selectedSpecialty == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn chuyên khoa trước')),
+      );
       return;
     }
 
-    setState(() {
-      _selectedDoctor = doctor;
-    });
-    await _hydrateSelectedDoctor();
-    await _loadSchedules();
+    final doctor = await Navigator.push<DoctorProfile>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DoctorListScreen(
+          specialtyId: _selectedSpecialty!.id,
+          specialty: _selectedSpecialty!.name,
+          selectionMode: true,
+        ),
+      ),
+    );
+
+    if (doctor != null) {
+      setState(() {
+        _selectedDoctor = doctor;
+        _selectedSchedule = null;
+        _schedules = [];
+      });
+      _loadSchedules();
+    }
   }
 
   Future<void> _pickDate() async {
@@ -214,123 +249,259 @@ class _BookingScreenState extends State<BookingScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Đặt lịch hẹn',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Thông tin người đặt lịch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  _buildInfoRow(Icons.person_outline, _currentUser?.fullName ?? _currentUser?.username ?? 'Người dùng'),
-                  _buildInfoRow(Icons.email_outlined, _currentUser?.email ?? 'Chưa có email'),
-                ],
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 120,
+            backgroundColor: const Color(0xFF38A3A5),
+            elevation: 0,
+            centerTitle: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: const Text(
+              'Đăng ký lịch khám',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 20),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF2C8385), Color(0xFF57BBBF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
               ),
             ),
-            const Divider(thickness: 8, color: Color(0xFFF5F5F5)),
-            Padding(
-              padding: const EdgeInsets.all(16),
+          ),
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Thông tin đặt hẹn', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            backgroundColor: Color(0xFF38A3A5),
+                            child: Icon(Icons.person, color: Colors.white),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(_currentUser?.fullName ?? _currentUser?.username ?? 'Bệnh nhân', 
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                Text(_currentUser?.email ?? 'Chưa có email', 
+                                  style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Divider(thickness: 1, height: 1, color: Color(0xFFE2E8F0)),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('1. Thông tin chuyên khoa & Bác sĩ',
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B))),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<Specialty>(
+                    value: _selectedSpecialty,
+                    decoration: InputDecoration(
+                      labelText: 'Chuyên khoa cần khám',
+                      prefixIcon: const Icon(Icons.category_outlined),
+                      filled: true,
+                      fillColor: const Color(0xFFF1F5F9),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    items: _specialties
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedSpecialty = val;
+                        _selectedDoctor = null;
+                        _selectedPackage = null;
+                        _packages = [];
+                      });
+                      _loadPackagesForSpecialty(val?.id);
+                    },
+                  ),
                   const SizedBox(height: 16),
                   _buildSelectionTile(
-                    icon: Icons.person_outline,
-                    label: 'Bác sĩ',
-                    value: _selectedDoctor?.fullName ?? 'Chọn bác sĩ',
+                    icon: Icons.person_search_outlined,
+                    label: 'Bác sĩ chuyên khoa',
+                    value: _selectedDoctor?.fullName ?? 'Nhấn để chọn bác sĩ',
                     onTap: _pickDoctor,
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<ExamPackageModel>(
-                    value: _selectedPackage,
-                    decoration: const InputDecoration(
-                      labelText: 'Gói khám',
-                      border: OutlineInputBorder(),
+                  const SizedBox(height: 16),
+                  if (_loadingPackages)
+                    const Center(child: LinearProgressIndicator())
+                  else
+                    DropdownButtonFormField<ExamPackageModel>(
+                      value: _selectedPackage,
+                      decoration: InputDecoration(
+                        labelText: 'Gói khám dịch vụ',
+                        prefixIcon: const Icon(Icons.medical_services_outlined),
+                        filled: true,
+                        fillColor: const Color(0xFFF1F5F9),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                      items: _packages
+                          .map(
+                            (pkg) => DropdownMenuItem<ExamPackageModel>(
+                              value: pkg,
+                              child: Text(pkg.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedPackage = value),
                     ),
-                    items: _packages
-                        .map(
-                          (pkg) => DropdownMenuItem<ExamPackageModel>(
-                            value: pkg,
-                            child: Text(pkg.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => setState(() => _selectedPackage = value),
-                  ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Ngày khám mong muốn'),
-                    subtitle: Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
-                    trailing: const Icon(Icons.calendar_today_outlined),
+                  const SizedBox(height: 24),
+                  const Text('2. Chọn thời gian khám',
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B))),
+                  const SizedBox(height: 16),
+                  _buildSelectionTile(
+                    icon: Icons.calendar_month_outlined,
+                    label: 'Ngày khám',
+                    value: DateFormat('EEEE, dd/MM/yyyy', 'vi_VN').format(_selectedDate),
                     onTap: _pickDate,
                   ),
                 ],
               ),
             ),
-            const Divider(thickness: 8, color: Color(0xFFF5F5F5)),
+            const Divider(thickness: 1, height: 1, color: Color(0xFFE2E8F0)),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Khung giờ bác sĩ còn trống', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('3. Chọn giờ khám còn trống',
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B))),
                   const SizedBox(height: 16),
                   if (_selectedDoctor == null)
-                    const Text('Chọn bác sĩ để xem lịch trống')
+                    _buildEmptyState('Vui lòng chọn bác sĩ để xem lịch')
                   else if (_loadingSchedules)
-                    const Center(child: CircularProgressIndicator())
+                    const Center(child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(color: Color(0xFF38A3A5)),
+                    ))
                   else if (_schedules.isEmpty)
-                    const Text('Không có lịch trống cho ngày này')
+                    _buildEmptyState('Rất tiếc, ngày này bác sĩ không có lịch trống')
                   else
                     Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
+                      spacing: 12,
+                      runSpacing: 12,
                       children: _schedules.map((schedule) {
                         final isSelected = _selectedSchedule?.id == schedule.id;
                         final label =
-                            '${DateFormat('HH:mm').format(schedule.startTime)} - ${DateFormat('HH:mm').format(schedule.endTime)}';
+                            '${DateFormat('HH:mm').format(schedule.startTime)}';
                         return ChoiceChip(
-                          label: Text(label),
+                          label: Container(
+                            width: 70,
+                            alignment: Alignment.center,
+                            child: Text(label, style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            )),
+                          ),
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedSchedule = schedule),
                           selectedColor: const Color(0xFF38A3A5),
-                          labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          labelStyle: TextStyle(color: isSelected ? Colors.white : const Color(0xFF475569)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: isSelected ? const Color(0xFF38A3A5) : Colors.transparent,
+                            ),
+                          ),
+                          showCheckmark: false,
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                         );
                       }).toList(),
                     ),
                 ],
               ),
             ),
-            const Divider(thickness: 8, color: Color(0xFFF5F5F5)),
+            const Divider(thickness: 1, height: 1, color: Color(0xFFE2E8F0)),
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _reasonController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Lý do khám',
-                  hintText: 'Mô tả ngắn triệu chứng hoặc nhu cầu thăm khám',
-                  border: OutlineInputBorder(),
-                ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('4. Lý do thăm khám (không bắt buộc)',
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B))),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _reasonController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Nhập triệu chứng hoặc nhu cầu của bạn...',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: const Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: const Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(
@@ -352,8 +523,11 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
               ),
             ),
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -371,6 +545,29 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
+  Widget _buildEmptyState(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.info_outline, color: const Color(0xFFCBD5E1), size: 32),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: const Color(0xFF64748B), fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSelectionTile({
     required IconData icon,
     required String label,
@@ -379,17 +576,44 @@ class _BookingScreenState extends State<BookingScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
-            Icon(icon, color: Colors.grey),
-            const SizedBox(width: 12),
-            Expanded(child: Text(value)),
-            const Icon(Icons.chevron_right),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: const Color(0xFF38A3A5), size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                          color: const Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 2),
+                  Text(value,
+                      style: const TextStyle(
+                          color: Color(0xFF1E293B),
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF64748B)),
           ],
         ),
       ),

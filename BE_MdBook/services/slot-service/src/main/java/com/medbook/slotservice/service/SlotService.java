@@ -3,29 +3,21 @@ package com.medbook.slotservice.service;
 import com.medbook.slotservice.dto.request.BlockSlotRequest;
 import com.medbook.slotservice.dto.request.BookSlotRequest;
 import com.medbook.slotservice.dto.request.CreateRecurringSlotRequest;
-import com.medbook.slotservice.dto.request.EquipmentAvailabilityQuery;
-import com.medbook.slotservice.dto.request.RoomAvailabilityQuery;
 import com.medbook.slotservice.dto.response.AvailableSlotsResponse;
 import com.medbook.slotservice.dto.response.CreateRecurringResult;
 import com.medbook.slotservice.dto.response.RecurringSlotConfigResponse;
 import com.medbook.slotservice.dto.response.SlotResponse;
-import com.medbook.slotservice.entity.Equipment;
 import com.medbook.slotservice.entity.RecurringSlotConfig;
-import com.medbook.slotservice.entity.Room;
 import com.medbook.slotservice.entity.Slot;
 import com.medbook.slotservice.entity.SlotHistory;
-import com.medbook.slotservice.entity.enums.EquipmentStatus;
 import com.medbook.slotservice.entity.enums.RecurringStatus;
-import com.medbook.slotservice.entity.enums.RoomStatus;
 import com.medbook.slotservice.entity.enums.SlotStatus;
 import com.medbook.slotservice.entity.enums.SlotTargetType;
 import com.medbook.slotservice.exception.AppException;
 import com.medbook.slotservice.exception.ErrorCode;
 import com.medbook.slotservice.mapper.RecurringSlotConfigMapper;
 import com.medbook.slotservice.mapper.SlotMapper;
-import com.medbook.slotservice.repository.EquipmentRepository;
 import com.medbook.slotservice.repository.RecurringSlotConfigRepository;
-import com.medbook.slotservice.repository.RoomRepository;
 import com.medbook.slotservice.repository.SlotHistoryRepository;
 import com.medbook.slotservice.repository.SlotRepository;
 import java.time.LocalDateTime;
@@ -47,8 +39,6 @@ public class SlotService {
     private final SlotRepository slotRepository;
     private final RecurringSlotConfigRepository recurringRepository;
     private final SlotHistoryRepository historyRepository;
-    private final RoomRepository roomRepository;
-    private final EquipmentRepository equipmentRepository;
     private final SlotMapper slotMapper;
     private final RecurringSlotConfigMapper recurringMapper;
     private final SlotCacheService cacheService;
@@ -114,105 +104,32 @@ public class SlotService {
         return slotMapper.toResponse(slot);
     }
 
-    public AvailableSlotsResponse findAvailableRoomSlots(RoomAvailabilityQuery query) {
-        String cacheKey = cacheService.buildRoomCacheKey(query);
-        AvailableSlotsResponse cached = cacheService.getAvailableSlots(cacheKey);
-        if (cached != null) {
-            return cached;
-        }
-
-        List<String> roomIds = roomRepository
-                .findByFacilityIdAndRoomCategoryAndStatus(query.getFacilityId(), query.getRoomCategory(),
-                        RoomStatus.ACTIVE)
-                .stream()
-                .map(Room::getId)
-                .toList();
-
-        if (roomIds.isEmpty()) {
-            return buildAvailableResponse(List.of(), 0, false);
-        }
-
+    public AvailableSlotsResponse findAvailableFacilitySlots(com.medbook.slotservice.dto.request.FacilityAvailabilityQuery query) {
         LocalDateTime startOfDay = query.getDate().atStartOfDay();
         LocalDateTime endOfDay = query.getDate().atTime(23, 59, 59);
-        int limit = query.getLimit() != null ? query.getLimit() : 5;
+        int limit = query.getLimit() != null ? query.getLimit() : 20;
 
         List<SlotResponse> responses = slotRepository
                 .findByTargetTypeAndTargetIdInAndStatusAndStartTimeGreaterThanEqualAndStartTimeLessThanOrderByStartTimeAsc(
-                        SlotTargetType.ROOM,
-                        roomIds,
+                        SlotTargetType.FACILITY,
+                        List.of(String.valueOf(query.getFacilityId())),
                         SlotStatus.AVAILABLE,
                         startOfDay,
                         endOfDay,
-                        PageRequest.of(0, limit))
+                        org.springframework.data.domain.PageRequest.of(0, limit))
                 .stream()
                 .map(slotMapper::toResponse)
                 .toList();
 
         long total = slotRepository
                 .countByTargetTypeAndTargetIdInAndStatusAndStartTimeGreaterThanEqualAndStartTimeLessThan(
-                        SlotTargetType.ROOM,
-                        roomIds,
+                        SlotTargetType.FACILITY,
+                        List.of(String.valueOf(query.getFacilityId())),
                         SlotStatus.AVAILABLE,
                         startOfDay,
                         endOfDay);
 
-        AvailableSlotsResponse response = buildAvailableResponse(responses, (int) total, total > limit);
-        cacheService.setAvailableSlots(cacheKey, response);
-        return response;
-    }
-
-    public AvailableSlotsResponse findAvailableEquipmentSlots(EquipmentAvailabilityQuery query) {
-        Room room = roomRepository.findById(query.getRoomId())
-                .orElseThrow(() -> new AppException(ErrorCode.ROOM_NOT_FOUND));
-        if (!room.getFacilityId().equals(query.getFacilityId())) {
-            throw new AppException(ErrorCode.ROOM_NOT_FOUND);
-        }
-
-        String cacheKey = cacheService.buildEquipmentCacheKey(query);
-        AvailableSlotsResponse cached = cacheService.getAvailableSlots(cacheKey);
-        if (cached != null) {
-            return cached;
-        }
-
-        List<String> equipmentIds = (query.getEquipmentType() == null
-                ? equipmentRepository.findByRoomIdAndStatus(query.getRoomId(), EquipmentStatus.ACTIVE)
-                : equipmentRepository.findByRoomIdAndEquipmentTypeAndStatus(
-                        query.getRoomId(), query.getEquipmentType(), EquipmentStatus.ACTIVE))
-                .stream()
-                .map(Equipment::getId)
-                .toList();
-
-        if (equipmentIds.isEmpty()) {
-            return buildAvailableResponse(List.of(), 0, false);
-        }
-
-        LocalDateTime startOfDay = query.getDate().atStartOfDay();
-        LocalDateTime endOfDay = query.getDate().atTime(23, 59, 59);
-        int limit = query.getLimit() != null ? query.getLimit() : 5;
-
-        List<SlotResponse> responses = slotRepository
-                .findByTargetTypeAndTargetIdInAndStatusAndStartTimeGreaterThanEqualAndStartTimeLessThanOrderByStartTimeAsc(
-                        SlotTargetType.EQUIPMENT,
-                        equipmentIds,
-                        SlotStatus.AVAILABLE,
-                        startOfDay,
-                        endOfDay,
-                        PageRequest.of(0, limit))
-                .stream()
-                .map(slotMapper::toResponse)
-                .toList();
-
-        long total = slotRepository
-                .countByTargetTypeAndTargetIdInAndStatusAndStartTimeGreaterThanEqualAndStartTimeLessThan(
-                        SlotTargetType.EQUIPMENT,
-                        equipmentIds,
-                        SlotStatus.AVAILABLE,
-                        startOfDay,
-                        endOfDay);
-
-        AvailableSlotsResponse response = buildAvailableResponse(responses, (int) total, total > limit);
-        cacheService.setAvailableSlots(cacheKey, response);
-        return response;
+        return buildAvailableResponse(responses, (int) total, total > limit);
     }
 
     @Transactional
@@ -304,19 +221,15 @@ public class SlotService {
     }
 
     private void assertTargetExists(SlotTargetType targetType, String targetId, Long facilityId) {
-        if (targetType == SlotTargetType.ROOM) {
-            Room room = roomRepository.findById(targetId)
-                    .orElseThrow(() -> new AppException(ErrorCode.TARGET_NOT_FOUND));
-            if (!room.getFacilityId().equals(facilityId)) {
-                throw new AppException(ErrorCode.TARGET_NOT_FOUND);
-            }
+        if (targetType == SlotTargetType.DOCTOR) {
+            // Doctors are managed by profile-service/auth-service
+            // We just assume the targetId is valid for now
             return;
         }
 
-        if (targetType == SlotTargetType.EQUIPMENT) {
-            Equipment equipment = equipmentRepository.findById(targetId)
-                    .orElseThrow(() -> new AppException(ErrorCode.TARGET_NOT_FOUND));
-            if (!equipment.getFacilityId().equals(facilityId)) {
+        if (targetType == SlotTargetType.FACILITY) {
+            // Facility is implicitly valid if it matches facilityId
+            if (targetId != null && !targetId.equals(String.valueOf(facilityId))) {
                 throw new AppException(ErrorCode.TARGET_NOT_FOUND);
             }
             return;
@@ -330,16 +243,14 @@ public class SlotService {
     }
 
     private void invalidateTargetAvailability(SlotTargetType targetType, String targetId, Long facilityId) {
-        if (targetType == SlotTargetType.ROOM) {
-            roomRepository.findById(targetId)
-                    .ifPresent(room -> cacheService.invalidateRoomAvailability(facilityId, room.getRoomCategory()));
+        if (targetType == SlotTargetType.DOCTOR) {
+            // No specific cache for doctor availability yet
             return;
         }
 
-        if (targetType == SlotTargetType.EQUIPMENT) {
-            equipmentRepository.findById(targetId)
-                    .ifPresent(equipment -> cacheService.invalidateEquipmentAvailability(facilityId,
-                            equipment.getRoomId()));
+        if (targetType == SlotTargetType.FACILITY) {
+            // No specific cache for facility availability yet
+            return;
         }
     }
 

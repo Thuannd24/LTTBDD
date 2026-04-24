@@ -106,6 +106,7 @@ public class DoctorScheduleService {
         doctorSchedule.setStartTime(request.getStartTime());
         doctorSchedule.setEndTime(request.getEndTime());
         doctorSchedule.setNotes(request.getNotes());
+        doctorSchedule.setRoomSlotId(request.getRoomSlotId());
 
         doctorSchedule = doctorScheduleRepository.save(doctorSchedule);
         return doctorScheduleMapper.toDoctorScheduleResponse(doctorSchedule);

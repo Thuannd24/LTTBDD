@@ -4,8 +4,7 @@ import com.medbook.slotservice.dto.ApiResponse;
 import com.medbook.slotservice.dto.request.BlockSlotRequest;
 import com.medbook.slotservice.dto.request.BookSlotRequest;
 import com.medbook.slotservice.dto.request.CreateRecurringSlotRequest;
-import com.medbook.slotservice.dto.request.EquipmentAvailabilityQuery;
-import com.medbook.slotservice.dto.request.RoomAvailabilityQuery;
+
 import com.medbook.slotservice.dto.request.ReleaseSlotRequest;
 import com.medbook.slotservice.dto.response.AvailableSlotsResponse;
 import com.medbook.slotservice.dto.response.CreateRecurringResult;
@@ -40,17 +39,10 @@ public class SlotController {
         return Map.of("status", "ok");
     }
 
-    @GetMapping("/slots/rooms/available")
-    public ApiResponse<AvailableSlotsResponse> getAvailableRooms(@Valid RoomAvailabilityQuery query) {
+    @GetMapping("/slots/facility/available")
+    public ApiResponse<AvailableSlotsResponse> getAvailableFacilitySlots(@Valid com.medbook.slotservice.dto.request.FacilityAvailabilityQuery query) {
         return ApiResponse.<AvailableSlotsResponse>builder()
-                .result(slotService.findAvailableRoomSlots(query))
-                .build();
-    }
-
-    @GetMapping("/slots/equipments/available")
-    public ApiResponse<AvailableSlotsResponse> getAvailableEquipments(@Valid EquipmentAvailabilityQuery query) {
-        return ApiResponse.<AvailableSlotsResponse>builder()
-                .result(slotService.findAvailableEquipmentSlots(query))
+                .result(slotService.findAvailableFacilitySlots(query))
                 .build();
     }
 

@@ -9,11 +9,17 @@ class ChatUserProfile {
   final String userId;
   final String displayName;
   final String? avatarUrl;
+  final String? phone;
+  final String? medicalHistory;
+  final String? allergies;
 
   const ChatUserProfile({
     required this.userId,
     required this.displayName,
     this.avatarUrl,
+    this.phone,
+    this.medicalHistory,
+    this.allergies,
   });
 }
 
@@ -30,9 +36,9 @@ class ProfileService {
 
   String get _baseUrl {
     try {
-      return dotenv.env['API_URL'] ?? 'http://172.11.218.230:8080/api/v1';
+      return dotenv.env['API_URL'] ?? 'http://192.168.0.100:8080/api/v1';
     } catch (_) {
-      return 'http://172.11.218.230:8080/api/v1';
+      return 'http://192.168.0.100:8080/api/v1';
     }
   }
 
@@ -155,6 +161,9 @@ class ProfileService {
           ? fullName
           : (d['username'] as String? ?? 'Bệnh nhân'),
       avatarUrl: d['avatar'] as String?,
+      phone: d['phone'] as String?,
+      medicalHistory: d['medicalHistory'] as String?,
+      allergies: d['allergies'] as String?,
     );
   }
 
@@ -170,6 +179,7 @@ class ProfileService {
       userId: returnedUserId,
       displayName: name,
       avatarUrl: d['avatar'] as String? ?? d['avatarUrl'] as String?,
+      phone: d['phone'] as String?,
     );
   }
 }

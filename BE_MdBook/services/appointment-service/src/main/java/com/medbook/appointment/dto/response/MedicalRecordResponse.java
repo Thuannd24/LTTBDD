@@ -6,18 +6,21 @@ import lombok.experimental.FieldDefaults;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ExamPackageResponse {
+public class MedicalRecordResponse {
+
     String id;
-    String code;
-    String name;
-    String description;
-    String status;
-    Integer estimatedTotalMinutes;
-    String specialtyId;
+    String appointmentId;
+    String patientUserId;
+    String doctorId;
+    String diagnosis;
+    String symptoms;
+    String prescription;
+    String notes;
+    LocalDateTime followUpDate;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }

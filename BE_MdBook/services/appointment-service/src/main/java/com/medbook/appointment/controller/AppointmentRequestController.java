@@ -42,6 +42,14 @@ public class AppointmentRequestController {
                 .body(ApiResponse.<AppointmentRequestResponse>builder().result(response).build());
     }
 
+    @GetMapping("/pending")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
+    public ApiResponse<Page<AppointmentRequestResponse>> getPendingRequests(Pageable pageable) {
+        return ApiResponse.<Page<AppointmentRequestResponse>>builder()
+                .result(appointmentRequestService.getPendingRequests(pageable))
+                .build();
+    }
+
     @GetMapping("/my")
     public ApiResponse<Page<AppointmentRequestResponse>> getMyRequests(Pageable pageable) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -57,6 +65,14 @@ public class AppointmentRequestController {
         validatePermission(response.getPatientUserId(), authentication);
 
         return ApiResponse.<AppointmentRequestResponse>builder().result(response).build();
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ApiResponse<AppointmentRequestResponse> cancelRequest(@PathVariable String id) {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ApiResponse.<AppointmentRequestResponse>builder()
+                .result(appointmentRequestService.cancelRequest(id, userId))
+                .build();
     }
 
     private void validatePermission(String patientUserId, Authentication authentication) {

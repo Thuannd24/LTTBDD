@@ -43,6 +43,9 @@ public class ExamPackage {
     @Column(nullable = false)
     Integer estimatedTotalMinutes;
     
+    @Column(name = "specialty_id")
+    String specialtyId;
+    
 @CreatedDate
     @Column(nullable = false, updatable = false)
     LocalDateTime createdAt;
