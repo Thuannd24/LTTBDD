@@ -316,16 +316,21 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   }
 
   Widget _buildOverviewTab(bool isMobile) {
+    String displayName = (_doctorInfo?.fullName != null && _doctorInfo!.fullName != 'Bác sĩ') 
+        ? _doctorInfo!.fullName 
+        : (widget.user?.fullName ?? 'Bác sĩ');
+
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppStrings.whatsNewToday,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey[800]),
-          ),
-          const SizedBox(height: 24),
+          // Welcome Banner
+          _buildWelcomeBanner(displayName),
+          const SizedBox(height: 32),
+          
+          // Stats Grid
           LayoutBuilder(
             builder: (context, constraints) {
               final crossAxisCount = constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 800 ? 2 : 1);
@@ -333,19 +338,21 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 2.2,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 2.5,
                 children: [
-                  _buildStatsCard(AppStrings.appointmentStat, '12', Icons.calendar_today_rounded, Colors.blue, AppStrings.threeNew),
-                  _buildStatsCard(AppStrings.patientStat, '45', Icons.group_rounded, Colors.teal, AppStrings.fiveNew),
-                  _buildStatsCard(AppStrings.reviewStat, '4.8', Icons.star_rounded, Colors.orange, AppStrings.oneTwentyTurns),
-                  _buildStatsCard(AppStrings.incomeStat, '2.5M', Icons.payments_rounded, Colors.purple, AppStrings.thisMonth),
+                  _buildStatsCard('Lịch hẹn hôm nay', '12', Icons.calendar_today_rounded, const Color(0xFF38A3A5), '+3 mới'),
+                  _buildStatsCard('Tổng bệnh nhân', '1,248', Icons.people_alt_rounded, const Color(0xFF22577A), '+5 tháng này'),
+                  _buildStatsCard('Đánh giá trung bình', '4.9', Icons.star_rounded, const Color(0xFFFFB703), '240 lượt'),
+                  _buildStatsCard('Doanh thu dự kiến', '15.5M', Icons.account_balance_wallet_rounded, const Color(0xFF80ED99), 'Tháng này'),
                 ],
               );
             },
           ),
           const SizedBox(height: 32),
+          
+          // Main Content Area
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -354,6 +361,64 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
               if (!isMobile) Expanded(child: _buildSchedulePreview()),
             ],
           ),
+          if (isMobile) const SizedBox(height: 24),
+          if (isMobile) _buildSchedulePreview(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeBanner(String name) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF22577A), Color(0xFF38A3A5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF38A3A5).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Chào mừng quay trở lại,',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Bác sĩ $name',
+                  style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: const Text(
+                    'Bạn có 5 lịch hẹn mới cần xác nhận trong hôm nay.',
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (MediaQuery.of(context).size.width > 600)
+            const Icon(Icons.medication_liquid, color: Colors.white, size: 80),
         ],
       ),
     );
@@ -364,27 +429,44 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
-            child: Icon(icon, color: color, size: 28),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(width: 16),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
-              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-              Text(trend, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
-            ],
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                ),
+                Text(
+                  trend,
+                  style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -394,19 +476,74 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   Widget _buildAppointmentsPreview() {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(AppStrings.recentAppointments, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              TextButton(onPressed: () {}, child: const Text(AppStrings.viewAll)),
+              const Text('Lịch hẹn gần đây', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              TextButton(
+                onPressed: () => setState(() => _selectedIndex = 2),
+                child: const Text('Xem tất cả'),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          const Center(child: Text(AppStrings.noAppointmentsToday, style: TextStyle(color: Colors.grey))),
+          // Placeholder for real list
+          _buildAppointmentItem('Nguyễn Văn An', '08:00 - 08:30', 'Gói khám cơ bản', 'Đang chờ'),
+          _buildAppointmentItem('Trần Thị Bình', '09:00 - 09:30', 'Khám tim mạch', 'Đã xác nhận'),
+          _buildAppointmentItem('Lê Hoàng Long', '10:30 - 11:00', 'Tư vấn nội tiết', 'Đã khám'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppointmentItem(String patient, String time, String package, String status) {
+    Color statusColor = status == 'Đang chờ' ? Colors.orange : (status == 'Đã xác nhận' ? Colors.blue : Colors.green);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            child: const Icon(Icons.person_outline, color: Color(0xFF38A3A5), size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(patient, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text('$time • $package', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );
@@ -415,27 +552,40 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   Widget _buildSchedulePreview() {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(AppStrings.scheduleShiftConfig, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Cấu hình ca làm việc', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          const Text(AppStrings.noRecurringShiftsSet, style: TextStyle(color: Colors.grey, fontSize: 13)),
-          const SizedBox(height: 16),
+          const Text(
+            'Bạn chưa thiết lập lịch làm việc định kỳ cho tuần tới.',
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+          const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
+            height: 48,
             child: ElevatedButton(
               onPressed: () => setState(() => _selectedIndex = 1),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF38A3A5),
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
-              child: const Text(AppStrings.setupNow, style: TextStyle(color: Colors.white)),
+              child: const Text('Thiết lập ngay', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
       ),
     );
   }
+
 }

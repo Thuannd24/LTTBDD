@@ -25,5 +25,7 @@ public class ExamPackageRequest {
     @Positive(message = "Estimated total minutes phải lớn hơn 0")
     Integer estimatedTotalMinutes;
     
+    String specialtyId;
+    
     String status;
 }

@@ -17,6 +17,7 @@ public class ExamPackageResponse {
     String description;
     String status;
     Integer estimatedTotalMinutes;
+    String specialtyId;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }

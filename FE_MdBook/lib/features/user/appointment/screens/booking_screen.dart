@@ -8,6 +8,8 @@ import 'package:tbdd/features/auth/data/auth_service.dart';
 import 'package:tbdd/features/doctor/data/doctor_schedule_service.dart';
 import 'package:tbdd/features/user/appointment/data/exam_package_service.dart';
 import 'package:tbdd/features/user/appointment/screens/checkout_screen.dart';
+import 'package:tbdd/features/admin/data/specialty_service.dart';
+import 'package:tbdd/core/models/specialty_model.dart';
 import 'package:tbdd/features/user/appointment/screens/doctor_list_screen.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -23,17 +25,22 @@ class _BookingScreenState extends State<BookingScreen> {
   final AuthService _authService = AuthService();
   final ExamPackageService _examPackageService = ExamPackageService();
   final DoctorScheduleService _doctorScheduleService = DoctorScheduleService();
+  final SpecialtyService _specialtyService = SpecialtyService();
   final TextEditingController _reasonController = TextEditingController();
 
   UserProfile? _currentUser;
+  Specialty? _selectedSpecialty;
   DoctorProfile? _selectedDoctor;
   ExamPackageModel? _selectedPackage;
   DoctorScheduleModel? _selectedSchedule;
+  
+  List<Specialty> _specialties = [];
   List<ExamPackageModel> _packages = [];
   List<DoctorScheduleModel> _schedules = [];
   DateTime _selectedDate = DateTime.now();
   bool _loading = true;
   bool _loadingSchedules = false;
+  bool _loadingPackages = false;
 
   @override
   void initState() {
@@ -71,19 +78,21 @@ class _BookingScreenState extends State<BookingScreen> {
     try {
       final results = await Future.wait([
         _authService.getMyInfo(),
-        _examPackageService.fetchAll(),
+        _specialtyService.fetchAll(),
       ]);
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _currentUser = results[0] as UserProfile?;
-        _packages = results[1] as List<ExamPackageModel>;
-        if (_packages.isNotEmpty) {
-          _selectedPackage = _packages.first;
+        _specialties = (results[1] as List<Specialty>);
+        
+        if (_selectedDoctor != null && _selectedDoctor!.specialtyIds.isNotEmpty) {
+           final specId = _selectedDoctor!.specialtyIds.first;
+           _selectedSpecialty = _specialties.firstWhere((s) => s.id == specId, orElse: () => _specialties.first);
+           _loadPackagesForSpecialty(_selectedSpecialty?.id);
         }
+        
         _loading = false;
       });
 
@@ -91,10 +100,26 @@ class _BookingScreenState extends State<BookingScreen> {
         await _hydrateSelectedDoctor();
         await _loadSchedules();
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
       }
+    }
+  }
+
+  Future<void> _loadPackagesForSpecialty(String? specialtyId) async {
+    if (specialtyId == null) return;
+    setState(() => _loadingPackages = true);
+    try {
+      final pkgs = await _examPackageService.fetchAll(specialtyId: specialtyId);
+      if (!mounted) return;
+      setState(() {
+        _packages = pkgs;
+        _selectedPackage = _packages.isNotEmpty ? _packages.first : null;
+        _loadingPackages = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _loadingPackages = false);
     }
   }
 
@@ -135,22 +160,32 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Future<void> _pickDoctor() async {
-    final doctor = await Navigator.push<DoctorProfile>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DoctorListScreen(selectionMode: true),
-      ),
-    );
-
-    if (doctor == null) {
+    if (_selectedSpecialty == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn chuyên khoa trước')),
+      );
       return;
     }
 
-    setState(() {
-      _selectedDoctor = doctor;
-    });
-    await _hydrateSelectedDoctor();
-    await _loadSchedules();
+    final doctor = await Navigator.push<DoctorProfile>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DoctorListScreen(
+          specialtyId: _selectedSpecialty!.id,
+          specialty: _selectedSpecialty!.name,
+          selectionMode: true,
+        ),
+      ),
+    );
+
+    if (doctor != null) {
+      setState(() {
+        _selectedDoctor = doctor;
+        _selectedSchedule = null;
+        _schedules = [];
+      });
+      _loadSchedules();
+    }
   }
 
   Future<void> _pickDate() async {
@@ -292,12 +327,42 @@ class _BookingScreenState extends State<BookingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('1. Chọn bác sĩ & Gói khám',
+                        const Text('1. Thông tin chuyên khoa & Bác sĩ',
                             style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1E293B))),
                   const SizedBox(height: 20),
+                  DropdownButtonFormField<Specialty>(
+                    value: _selectedSpecialty,
+                    decoration: InputDecoration(
+                      labelText: 'Chuyên khoa cần khám',
+                      prefixIcon: const Icon(Icons.category_outlined),
+                      filled: true,
+                      fillColor: const Color(0xFFF1F5F9),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    items: _specialties
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedSpecialty = val;
+                        _selectedDoctor = null;
+                        _selectedPackage = null;
+                        _packages = [];
+                      });
+                      _loadPackagesForSpecialty(val?.id);
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   _buildSelectionTile(
                     icon: Icons.person_search_outlined,
                     label: 'Bác sĩ chuyên khoa',
@@ -305,32 +370,35 @@ class _BookingScreenState extends State<BookingScreen> {
                     onTap: _pickDoctor,
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<ExamPackageModel>(
-                    value: _selectedPackage,
-                    decoration: InputDecoration(
-                      labelText: 'Gói khám dịch vụ',
-                      prefixIcon: const Icon(Icons.medical_services_outlined),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: const Color(0xFFE2E8F0)),
+                  if (_loadingPackages)
+                    const Center(child: LinearProgressIndicator())
+                  else
+                    DropdownButtonFormField<ExamPackageModel>(
+                      value: _selectedPackage,
+                      decoration: InputDecoration(
+                        labelText: 'Gói khám dịch vụ',
+                        prefixIcon: const Icon(Icons.medical_services_outlined),
+                        filled: true,
+                        fillColor: const Color(0xFFF1F5F9),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: const Color(0xFFE2E8F0)),
-                      ),
+                      items: _packages
+                          .map(
+                            (pkg) => DropdownMenuItem<ExamPackageModel>(
+                              value: pkg,
+                              child: Text(pkg.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedPackage = value),
                     ),
-                    items: _packages
-                        .map(
-                          (pkg) => DropdownMenuItem<ExamPackageModel>(
-                            value: pkg,
-                            child: Text(pkg.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => setState(() => _selectedPackage = value),
-                  ),
                   const SizedBox(height: 24),
                   const Text('2. Chọn thời gian khám',
                       style: TextStyle(
