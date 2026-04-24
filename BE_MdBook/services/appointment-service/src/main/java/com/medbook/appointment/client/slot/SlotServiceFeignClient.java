@@ -18,12 +18,6 @@ public interface SlotServiceFeignClient {
     @GetMapping("/slots/{slotId}")
     ApiResponse<SlotDetailsResponse> getSlot(@PathVariable("slotId") String slotId);
 
-    @GetMapping("/rooms/{roomId}")
-    ApiResponse<RoomDetailsResponse> getRoom(@PathVariable("roomId") String roomId);
-
-    @GetMapping("/equipments/{equipmentId}")
-    ApiResponse<EquipmentDetailsResponse> getEquipment(@PathVariable("equipmentId") String equipmentId);
-
     @PostMapping("/slots/{slotId}/reserve")
     ApiResponse<SlotDetailsResponse> reserveSlot(
             @PathVariable("slotId") Long slotId,
@@ -41,22 +35,6 @@ record SlotDetailsResponse(
         String targetId,
         LocalDateTime startTime,
         LocalDateTime endTime,
-        String status
-) {
-}
-
-record RoomDetailsResponse(
-        String id,
-        String roomName,
-        String roomCategory,
-        String status
-) {
-}
-
-record EquipmentDetailsResponse(
-        String id,
-        String equipmentName,
-        String equipmentType,
         String status
 ) {
 }

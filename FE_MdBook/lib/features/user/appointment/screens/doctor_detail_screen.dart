@@ -5,7 +5,6 @@ import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
 import 'package:tbdd/features/chat/data/chat_api_service.dart';
 import 'package:tbdd/features/chat/presentation/screens/chat_detail_screen.dart';
-import 'booking_screen.dart';
 
 class DoctorDetailScreen extends StatelessWidget {
   final DoctorProfile doctor;

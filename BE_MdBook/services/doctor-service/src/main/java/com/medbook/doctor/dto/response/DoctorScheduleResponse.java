@@ -25,6 +25,7 @@ public class DoctorScheduleResponse {
     DoctorScheduleStatus status;
     String appointmentId;
     String notes;
+    Long roomSlotId;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }

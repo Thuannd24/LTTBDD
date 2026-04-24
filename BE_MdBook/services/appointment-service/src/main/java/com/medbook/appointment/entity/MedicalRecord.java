@@ -1,11 +1,7 @@
 package com.medbook.appointment.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AccessLevel;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -15,60 +11,54 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "appointments")
+@Table(name = "medical_records")
 @EntityListeners(AuditingEntityListener.class)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Appointment {
-    
+public class MedicalRecord {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     String id;
-    
+
+    @Column(nullable = false, unique = true, length = 50)
+    String appointmentId;
+
     @Column(nullable = false, length = 50)
     String patientUserId;
-    
+
     @Column(nullable = false, length = 50)
     String doctorId;
-    
-    @Column(nullable = false)
-    Long doctorScheduleId;
 
-    Long roomSlotId;
-
-
-    @Column(nullable = false, length = 50)
-    String facilityId;
-    
-    @Column(nullable = false, length = 50)
-    String packageId;
-    
-    @Column(nullable = false, length = 30)
-    @Enumerated(EnumType.STRING)
-    AppointmentStatus status;
-    
+    // Kết quả chẩn đoán chính
     @Column(columnDefinition = "TEXT")
-    String note;
-    
+    String diagnosis;
+
+    // Triệu chứng được mô tả
     @Column(columnDefinition = "TEXT")
-    String cancelReason;
-    
+    String symptoms;
+
+    // Đơn thuốc (dạng text hoặc JSON)
+    @Column(columnDefinition = "TEXT")
+    String prescription;
+
+    // Hướng dẫn / lời khuyên
+    @Column(columnDefinition = "TEXT")
+    String notes;
+
+    // Lịch tái khám (nếu có)
+    LocalDateTime followUpDate;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     LocalDateTime createdAt;
-    
+
     @LastModifiedDate
     @Column(nullable = false)
     LocalDateTime updatedAt;
-    
-    public enum AppointmentStatus {
-        CONFIRMED,
-        CANCELLED,
-        COMPLETED
-    }
 
     @PrePersist
     private void ensureId() {

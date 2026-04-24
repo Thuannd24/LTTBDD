@@ -22,7 +22,6 @@ public class AppointmentRequestResponse {
     String packageId;
     String facilityId;
     Long roomSlotId;
-    Long equipmentSlotId;
     String status;
     String note;
     String appointmentId;

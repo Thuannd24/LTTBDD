@@ -33,6 +33,7 @@ public class AppointmentRequestService {
                 .patientUserId(patientUserId)
                 .doctorId(request.getDoctorId())
                 .doctorScheduleId(request.getDoctorScheduleId())
+                .roomSlotId(request.getRoomSlotId())
                 .packageId(request.getPackageId())
                 .status(AppointmentRequest.RequestStatus.PENDING_ASSIGNMENT)
                 .note(request.getNote())
@@ -71,8 +72,7 @@ public class AppointmentRequestService {
                         .packageId(appointmentRequest.getPackageId())
                         .doctorId(appointmentRequest.getDoctorId())
                         .doctorScheduleId(appointmentRequest.getDoctorScheduleId())
-                        .roomSlotId(request.getRoomSlotId())
-                        .equipmentSlotId(request.getEquipmentSlotId())
+                        .roomSlotId(request.getRoomSlotId() != null ? request.getRoomSlotId() : appointmentRequest.getRoomSlotId())
                         .facilityId(request.getFacilityId())
                         .note(appointmentRequest.getNote())
                         .build(),
@@ -81,7 +81,6 @@ public class AppointmentRequestService {
         appointmentRequest.setStatus(AppointmentRequest.RequestStatus.CONFIRMED);
         appointmentRequest.setFacilityId(request.getFacilityId());
         appointmentRequest.setRoomSlotId(request.getRoomSlotId());
-        appointmentRequest.setEquipmentSlotId(request.getEquipmentSlotId());
         appointmentRequest.setAppointmentId(appointmentResponse.getId());
         appointmentRequest.setProcessedBy(actorUserId);
         appointmentRequest.setProcessedAt(LocalDateTime.now());
@@ -102,6 +101,23 @@ public class AppointmentRequestService {
         appointmentRequest.setProcessedBy(actorUserId);
         appointmentRequest.setProcessedAt(LocalDateTime.now());
         appointmentRequest.setRejectionReason(request.getReason());
+
+        return toResponse(appointmentRequestRepository.save(appointmentRequest));
+    }
+
+    public AppointmentRequestResponse cancelRequest(String requestId, String patientUserId) {
+        AppointmentRequest appointmentRequest = getRequestEntity(requestId);
+        
+        if (!appointmentRequest.getPatientUserId().equals(patientUserId)) {
+            throw new AppointmentValidationException("Unauthorized to cancel this request");
+        }
+        
+        if (appointmentRequest.getStatus() != AppointmentRequest.RequestStatus.PENDING_ASSIGNMENT) {
+            throw new AppointmentValidationException("Only pending requests can be cancelled");
+        }
+
+        appointmentRequest.setStatus(AppointmentRequest.RequestStatus.CANCELLED);
+        appointmentRequest.setProcessedAt(LocalDateTime.now());
 
         return toResponse(appointmentRequestRepository.save(appointmentRequest));
     }
@@ -127,7 +143,6 @@ public class AppointmentRequestService {
                 .packageId(appointmentRequest.getPackageId())
                 .facilityId(appointmentRequest.getFacilityId())
                 .roomSlotId(appointmentRequest.getRoomSlotId())
-                .equipmentSlotId(appointmentRequest.getEquipmentSlotId())
                 .status(appointmentRequest.getStatus().name())
                 .note(appointmentRequest.getNote())
                 .appointmentId(appointmentRequest.getAppointmentId())

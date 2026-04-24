@@ -93,7 +93,7 @@ class ChatSocketService {
     _currentUserId = newUserId;
 
     final String chatUrl =
-        dotenv.env['CHAT_URL'] ?? 'http://172.17.158.253:5006';
+        dotenv.env['CHAT_URL'] ?? 'http://192.168.0.100:5006';
     print('🔌 Chat connect  userId=$_currentUserId  url=$chatUrl');
 
     _socket = IO.io(

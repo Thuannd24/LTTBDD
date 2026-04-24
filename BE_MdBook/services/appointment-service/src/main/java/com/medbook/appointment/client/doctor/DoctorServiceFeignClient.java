@@ -18,6 +18,9 @@ public interface DoctorServiceFeignClient {
     @GetMapping("/doctors/{doctorId}")
     ApiResponse<DoctorDetailsResponse> getDoctor(@PathVariable("doctorId") String doctorId);
 
+    @GetMapping("/doctors/user/{userId}")
+    ApiResponse<DoctorDetailsResponse> getDoctorByUserId(@PathVariable("userId") String userId);
+
     @GetMapping("/doctor-schedules/{scheduleId}")
     ApiResponse<DoctorScheduleDetailsResponse> getSchedule(@PathVariable("scheduleId") String scheduleId);
 

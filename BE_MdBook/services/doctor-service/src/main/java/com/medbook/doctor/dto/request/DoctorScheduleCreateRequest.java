@@ -27,4 +27,6 @@ public class DoctorScheduleCreateRequest {
     LocalDateTime endTime;
 
     String notes;
+
+    Long roomSlotId;
 }

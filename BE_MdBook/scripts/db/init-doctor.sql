@@ -1,6 +1,19 @@
 -- File: scripts/db/init-doctor.sql
 -- Script tự động khởi tạo dữ liệu chuyên khoa cho doctor_db
 
+-- Tạo bảng nếu chưa tồn tại (để có thể chạy lệnh INSERT ngay cả khi Spring Boot chưa khởi tạo bảng)
+CREATE TABLE IF NOT EXISTS specialties (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    overview TEXT,
+    services TEXT,
+    technology TEXT,
+    image TEXT,
+    created_at TIMESTAMP WITHOUT TIME ZONE,
+    updated_at TIMESTAMP WITHOUT TIME ZONE
+);
+
 -- Xóa dữ liệu cũ nếu có (tránh trùng lặp nếu chạy lại)
 DELETE FROM specialties;
 

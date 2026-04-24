@@ -15,8 +15,6 @@ public class GlobalExceptionHandler {
             AppointmentNotFoundException.class,
             AppointmentRequestNotFoundException.class,
             DoctorNotFoundException.class,
-            RoomNotFoundException.class,
-            EquipmentNotFoundException.class,
             SlotNotFoundException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleNotFound(RuntimeException ex) {

@@ -34,9 +34,32 @@ public class DoctorServiceClient {
                     response.userId(),
                     specialtyIds.isEmpty() ? "" : specialtyIds.getFirst(),
                     specialtyIds,
-                    "ACTIVE".equalsIgnoreCase(response.status()));
+                    "ACTIVE".equalsIgnoreCase(response.status()),
+                    response.status());
         } catch (FeignException.NotFound ex) {
             throw new DoctorNotFoundException("Doctor not found: " + doctorId);
+        } catch (FeignException ex) {
+            throw new ServiceCommunicationException("Error calling doctor-service", ex);
+        }
+    }
+
+    public DoctorInfo getDoctorByUserId(String userId) {
+        try {
+            DoctorDetailsResponse response = requireResult(
+                    doctorServiceFeignClient.getDoctorByUserId(userId),
+                    "Doctor not found for user: " + userId);
+            List<String> specialtyIds = response.specialtyIds() == null
+                    ? List.of()
+                    : response.specialtyIds().stream().sorted(Comparator.naturalOrder()).toList();
+            return new DoctorInfo(
+                    response.id(),
+                    response.userId(),
+                    specialtyIds.isEmpty() ? "" : specialtyIds.getFirst(),
+                    specialtyIds,
+                    "ACTIVE".equalsIgnoreCase(response.status()),
+                    response.status());
+        } catch (FeignException.NotFound ex) {
+            throw new DoctorNotFoundException("Doctor not found for user: " + userId);
         } catch (FeignException ex) {
             throw new ServiceCommunicationException("Error calling doctor-service", ex);
         }

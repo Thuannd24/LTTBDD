@@ -14,17 +14,12 @@ public enum ErrorCode {
     SLOT_CANNOT_BLOCK(1104, "Cannot block a slot that is already reserved"),
     INVALID_TARGET_TYPE(1105, "Invalid target type for requested operation"),
 
-    ROOM_NOT_FOUND(1301, "Room not found"),
-    EQUIPMENT_NOT_FOUND(1302, "Equipment not found"),
     SLOT_NOT_FOUND(1303, "Slot not found"),
     RECURRING_CONFIG_NOT_FOUND(1304, "Recurring config not found"),
-    TARGET_NOT_FOUND(1305, "Target room or equipment not found"),
+    TARGET_NOT_FOUND(1305, "Target not found"),
 
-    ROOM_CODE_ALREADY_EXISTS(1401, "Room code already exists in this facility"),
-    EQUIPMENT_CODE_ALREADY_EXISTS(1402, "Equipment code already exists in this facility"),
     RECURRING_CONFIG_ALREADY_EXISTS(1403, "Recurring config already exists for this target, facility, day and time range"),
     SLOT_ALREADY_RESERVED(1404, "Slot already reserved"),
-    ROOM_HAS_EQUIPMENTS(1405, "Room still has equipments and cannot be deleted"),
     SLOT_APPOINTMENT_MISMATCH(1406, "Slot belongs to a different appointment"),
 
     UNAUTHORIZED(2001, "Unauthorized"),

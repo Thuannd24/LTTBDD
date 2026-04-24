@@ -7,6 +7,7 @@ class DoctorScheduleModel {
   final String status;
   final String? appointmentId;
   final String? notes;
+  final int? roomSlotId;
 
   DoctorScheduleModel({
     required this.id,
@@ -17,6 +18,7 @@ class DoctorScheduleModel {
     required this.status,
     this.appointmentId,
     this.notes,
+    this.roomSlotId,
   });
 
   factory DoctorScheduleModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class DoctorScheduleModel {
       status: json['status'] ?? '',
       appointmentId: json['appointmentId'],
       notes: json['notes'],
+      roomSlotId: (json['roomSlotId'] as num?)?.toInt(),
     );
   }
 }

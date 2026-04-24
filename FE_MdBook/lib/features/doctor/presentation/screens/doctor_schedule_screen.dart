@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:tbdd/core/api/api_client.dart';
 import 'package:tbdd/core/models/doctor_schedule_model.dart';
+
 import 'package:tbdd/features/doctor/data/doctor_schedule_service.dart';
+import 'package:tbdd/features/doctor/data/slot_service.dart';
 
 class DoctorScheduleScreen extends StatefulWidget {
   final String doctorId;
@@ -63,7 +67,7 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Khong the tai lich lam viec: $e')),
+          SnackBar(content: Text('Không thể tải lịch làm việc: $e')),
         );
       }
     } finally {
@@ -76,158 +80,147 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
   Future<void> _showAddSlotDialog() async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    
+    // Services
+
+    
+    List<dynamic>? roomSlots;
+    dynamic selectedRoomSlot;
+    
     DateTime selectedDate = DateTime.now();
-    TimeOfDay startTime = const TimeOfDay(hour: 8, minute: 0);
-    TimeOfDay endTime = const TimeOfDay(hour: 9, minute: 0);
-    final notesController = TextEditingController();
+    bool loadingSlots = false;
     bool submitting = false;
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Them lich lam viec'),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: SingleChildScrollView(
+        builder: (dialogContext, setDialogState) {
+          
+          Future<void> loadSlots() async {
+            setDialogState(() => loadingSlots = true);
+            try {
+              final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
+              // Fetch facility slots
+              final resp = await ApiClient().get('/slot/slots/facility/available?facilityId=1&date=$dateStr');
+              if (resp.statusCode == 200) {
+                final data = jsonDecode(resp.body);
+                setDialogState(() {
+                  roomSlots = data['result']?['slots'] ?? [];
+                  loadingSlots = false;
+                });
+              } else {
+                setDialogState(() {
+                  loadingSlots = false;
+                  roomSlots ??= [];
+                });
+              }
+            } catch (e) {
+              setDialogState(() {
+                loadingSlots = false;
+                roomSlots ??= [];
+              });
+            }
+          }
+
+          // Initial load
+          if (roomSlots == null && !loadingSlots) {
+            loadSlots();
+          }
+
+          return AlertDialog(
+            title: const Text('Đăng ký lịch làm việc'),
+            content: SizedBox(
+              width: 500,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Ngay kham'),
-                    subtitle: Text(DateFormat('dd/MM/yyyy').format(selectedDate)),
-                    trailing: const Icon(Icons.calendar_today_outlined),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: dialogContext,
-                        initialDate: selectedDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 180)),
-                      );
-                      if (picked != null) {
-                        setDialogState(() => selectedDate = picked);
-                      }
-                    },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      TextButton(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null && picked != selectedDate) {
+                            setDialogState(() {
+                              selectedDate = picked;
+                              roomSlots = null;
+                            });
+                            loadSlots();
+                          }
+                        },
+                        child: const Text('Đổi ngày'),
+                      ),
+                    ],
                   ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Gio bat dau'),
-                    trailing: Text(startTime.format(dialogContext)),
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: dialogContext,
-                        initialTime: startTime,
-                      );
-                      if (picked != null) {
-                        setDialogState(() => startTime = picked);
-                      }
-                    },
-                  ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Gio ket thuc'),
-                    trailing: Text(endTime.format(dialogContext)),
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: dialogContext,
-                        initialTime: endTime,
-                      );
-                      if (picked != null) {
-                        setDialogState(() => endTime = picked);
-                      }
-                    },
-                  ),
+                  const Divider(),
+                  const Text('Chọn khung giờ trống:', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: notesController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Ghi chu',
-                      border: OutlineInputBorder(),
+                  if (loadingSlots)
+                    const CircularProgressIndicator()
+                  else if (roomSlots == null || roomSlots!.isEmpty)
+                    const Text('Không có khung giờ trống nào trong ngày này.', style: TextStyle(color: Colors.grey))
+                  else
+                    SizedBox(
+                      height: 200,
+                      child: ListView.builder(
+                        itemCount: roomSlots!.length,
+                        itemBuilder: (ctx, i) {
+                          final s = roomSlots![i];
+                          final isSelected = selectedRoomSlot?['id'] == s['id'];
+                          final start = DateTime.parse(s['startTime']);
+                          final end = DateTime.parse(s['endTime']);
+                          return ListTile(
+                            selected: isSelected,
+                            selectedTileColor: const Color(0xFF38A3A5).withOpacity(0.1),
+                            title: Text('${DateFormat('HH:mm').format(start)} - ${DateFormat('HH:mm').format(end)}'),
+                            subtitle: Text(DateFormat('dd/MM/yyyy').format(start)),
+                            onTap: () => setDialogState(() => selectedRoomSlot = s),
+                          );
+                        },
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: submitting ? null : () => Navigator.pop(dialogContext),
-              child: const Text('Huy'),
-            ),
-            ElevatedButton(
-              onPressed: submitting
-                  ? null
-                  : () async {
-                      final startDateTime = DateTime(
-                        selectedDate.year,
-                        selectedDate.month,
-                        selectedDate.day,
-                        startTime.hour,
-                        startTime.minute,
-                      );
-                      final endDateTime = DateTime(
-                        selectedDate.year,
-                        selectedDate.month,
-                        selectedDate.day,
-                        endTime.hour,
-                        endTime.minute,
-                      );
-
-                      if (!startDateTime.isBefore(endDateTime)) {
-                        scaffoldMessenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Gio bat dau phai som hon gio ket thuc'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      setDialogState(() => submitting = true);
-
-                      try {
-                        await _doctorScheduleService.createSchedule(
-                          doctorId: widget.doctorId,
-                          startTime: startDateTime,
-                          endTime: endDateTime,
-                          notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-                        );
-
-                        if (!mounted) {
-                          return;
-                        }
-
-                        navigator.pop();
-                        await _load();
-                        if (mounted) {
-                          scaffoldMessenger.showSnackBar(
-                            const SnackBar(content: Text('Tao lich lam viec thanh cong')),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Hủy')),
+              ElevatedButton(
+                onPressed: (submitting || selectedRoomSlot == null)
+                    ? null
+                    : () async {
+                        setDialogState(() => submitting = true);
+                        try {
+                          final start = DateTime.parse(selectedRoomSlot['startTime']);
+                          final end = DateTime.parse(selectedRoomSlot['endTime']);
+                          
+                          await _doctorScheduleService.createSchedule(
+                            doctorId: widget.doctorId,
+                            startTime: start,
+                            endTime: end,
+                            roomSlotId: selectedRoomSlot['id'],
                           );
+
+                          navigator.pop();
+                          _load();
+                          scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Đăng ký lịch thành công')));
+                        } catch (e) {
+                          scaffoldMessenger.showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+                          setDialogState(() => submitting = false);
                         }
-                      } catch (e) {
-                        if (mounted) {
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(content: Text('Khong the tao lich lam viec: $e')),
-                          );
-                        }
-                        setDialogState(() => submitting = false);
-                      }
-                    },
-              child: submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Tao'),
-            ),
-          ],
-        ),
+                      },
+                child: submitting ? const CircularProgressIndicator() : const Text('Đăng ký'),
+              ),
+            ],
+          );
+        },
       ),
     );
-
-    notesController.dispose();
   }
 
   String _formatSchedule(DoctorScheduleModel schedule) {
@@ -268,12 +261,12 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Lich lam viec',
+                    'Lịch làm việc',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Them cac khung gio cu the de benh nhan co the dat lich.',
+                    'Thêm các khung giờ cụ thể để bệnh nhân có thể đặt lịch.',
                     style: TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
@@ -289,7 +282,7 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         icon: const Icon(Icons.add_circle_outline),
-                        label: const Text('Them lich lam viec'),
+                        label: const Text('Thêm lịch làm việc'),
                       ),
                     ),
                   Expanded(
@@ -313,13 +306,13 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                                           ),
                                           const SizedBox(height: 16),
                                           const Text(
-                                            'Tai khoan nay chua co ho so bac si duoc lien ket.',
+                                            'Tài khoản này chưa có hồ sơ bác sĩ được liên kết.',
                                             textAlign: TextAlign.center,
                                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                                           ),
                                           const SizedBox(height: 8),
                                           const Text(
-                                            'Hay cap nhat ho so chuyen mon truoc, sau do quay lai de tao lich lam viec.',
+                                            'Hãy cập nhật hồ sơ chuyên môn trước, sau đó quay lại để tạo lịch làm việc.',
                                             textAlign: TextAlign.center,
                                             style: TextStyle(color: Colors.grey),
                                           ),
@@ -330,7 +323,7 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                                               backgroundColor: const Color(0xFF38A3A5),
                                               foregroundColor: Colors.white,
                                             ),
-                                            child: const Text('Mo ho so chuyen mon'),
+                                            child: const Text('Mở hồ sơ chuyên môn'),
                                           ),
                                         ],
                                       ),
@@ -339,7 +332,7 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                                 ),
                               )
                             : _schedules.isEmpty
-                                ? const Center(child: Text('Chua co lich lam viec nao'))
+                                ? const Center(child: Text('Chưa có lịch làm việc nào'))
                                 : RefreshIndicator(
                                     onRefresh: _load,
                                     child: ListView.builder(
@@ -367,7 +360,7 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                                             subtitle: Text(
                                               schedule.notes?.isNotEmpty == true
                                                   ? schedule.notes!
-                                                  : 'Co so ${schedule.facilityId ?? 1}',
+                                                  : 'Cơ sở ${schedule.facilityId ?? 1}',
                                             ),
                                             trailing: Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

@@ -1,14 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../../core/api/api_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatApiService {
-  final ApiClient _apiClient = ApiClient();
 
   String get _chatBaseUrl {
-    return dotenv.env['CHAT_URL'] ?? 'http://172.11.194.98:5006';
+    return dotenv.env['CHAT_URL'] ?? 'http://192.168.0.100:5006';
   }
 
   Future<Map<String, String>> _getHeaders() async {
@@ -29,7 +27,7 @@ class ChatApiService {
         Uri.parse('$_chatBaseUrl/chat/conversations'),
         headers: headers,
         body: jsonEncode({
-          'otherUserId': targetUserId,
+          'targetUserId': targetUserId,
         }),
       );
 

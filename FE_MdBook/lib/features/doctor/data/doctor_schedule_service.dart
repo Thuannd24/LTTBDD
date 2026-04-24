@@ -28,12 +28,14 @@ class DoctorScheduleService {
     required DateTime endTime,
     int facilityId = 1,
     String? notes,
+    int? roomSlotId,
   }) async {
     final response = await _client.post('/doctor/doctors/$doctorId/schedules', {
       'facilityId': facilityId,
       'startTime': _dateTimeFormat.format(startTime),
       'endTime': _dateTimeFormat.format(endTime),
       'notes': notes,
+      'roomSlotId': roomSlotId,
     });
 
     if (response.statusCode != 200 && response.statusCode != 201) {

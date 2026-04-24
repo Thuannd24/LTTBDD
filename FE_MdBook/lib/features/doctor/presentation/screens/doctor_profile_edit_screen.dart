@@ -99,7 +99,7 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
       debugPrint('Load doctor data error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Khong the tai du lieu ho so bac si')),
+          const SnackBar(content: Text('Không thể tải dữ liệu hồ sơ bác sĩ')),
         );
       }
     } finally {
@@ -214,8 +214,8 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
         SnackBar(
           content: Text(
             _loadedFromLegacyPlaceholder
-                ? 'Da lien ket lai ho so bac si voi tai khoan hien tai'
-                : 'Luu ho so bac si thanh cong',
+                ? 'Đã liên kết lại hồ sơ bác sĩ với tài khoản hiện tại'
+                : 'Lưu hồ sơ bác sĩ thành công',
           ),
         ),
       );
@@ -225,7 +225,7 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
       debugPrint('Save error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Luu ho so bac si that bai')),
+          const SnackBar(content: Text('Lưu hồ sơ bác sĩ thất bại')),
         );
       }
     }
@@ -238,7 +238,7 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
     }
 
     if (_profile == null) {
-      return const Center(child: Text('Da xay ra loi khoi tao ho so'));
+      return const Center(child: Text('Đã xảy ra lỗi khởi tạo hồ sơ'));
     }
 
     return SingleChildScrollView(
@@ -259,19 +259,19 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
                   border: Border.all(color: const Color(0xFFFFD591)),
                 ),
                 child: const Text(
-                  'Phat hien ho so cu dang gan sai tai khoan. Bam luu mot lan de lien ket lai dung tai khoan hien tai.',
+                  'Phát hiện hồ sơ cũ đang gắn sai tài khoản. Bấm lưu một lần để liên kết lại đúng tài khoản hiện tại.',
                   style: TextStyle(color: Color(0xFF8C6D1F), fontWeight: FontWeight.w600),
                 ),
               ),
             Text(
-              _isNew ? 'Khoi tao ho so bac si' : 'Ho so chuyen mon',
+              _isNew ? 'Khởi tạo hồ sơ bác sĩ' : 'Hồ sơ chuyên môn',
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
               _isNew
-                  ? 'Hoan tat thong tin de mo khoa lich lam viec va cho benh nhan dat lich.'
-                  : 'Cap nhat thong tin de benh nhan hieu ro hon ve ban.',
+                  ? 'Hoàn tất thông tin để mở khóa lịch làm việc và cho bệnh nhân đặt lịch.'
+                  : 'Cập nhật thông tin để bệnh nhân hiểu rõ hơn về bạn.',
               style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 32),
@@ -280,7 +280,7 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
                 Expanded(
                   child: _buildTextField(
                     _degreeCtrl!,
-                    'Hoc ham / Bang cap',
+                    'Học hàm / Bằng cấp',
                     Icons.school_rounded,
                   ),
                 ),
@@ -288,7 +288,7 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
                 Expanded(
                   child: _buildTextField(
                     _experienceCtrl!,
-                    'Nam kinh nghiem',
+                    'Năm kinh nghiệm',
                     Icons.history_rounded,
                     isNumber: true,
                   ),
@@ -300,7 +300,7 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
                 Expanded(
                   child: _buildTextField(
                     _positionCtrl!,
-                    'Chuc vu hien tai',
+                    'Chức vụ hiện tại',
                     Icons.work_rounded,
                   ),
                 ),
@@ -308,20 +308,20 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
                 Expanded(
                   child: _buildTextField(
                     _hourlyRateCtrl!,
-                    'Gia kham / gio (VND)',
+                    'Giá khám / giờ (VND)',
                     Icons.payments_rounded,
                     isNumber: true,
                   ),
                 ),
               ],
             ),
-            _buildTextField(_workLocationCtrl!, 'Noi cong tac', Icons.location_on_rounded),
-            _buildTextField(_biographyCtrl!, 'Gioi thieu ban than', Icons.person_search_rounded, maxLines: 3),
-            _buildTextField(_servicesCtrl!, 'Dich vu cung cap', Icons.medical_information_rounded, maxLines: 2),
-            _buildTextField(_qualificationCtrl!, 'Chung chi / Chuyen mon', Icons.verified_rounded, maxLines: 2),
+            _buildTextField(_workLocationCtrl!, 'Nơi công tác', Icons.location_on_rounded),
+            _buildTextField(_biographyCtrl!, 'Giới thiệu bản thân', Icons.person_search_rounded, maxLines: 3),
+            _buildTextField(_servicesCtrl!, 'Dịch vụ cung cấp', Icons.medical_information_rounded, maxLines: 2),
+            _buildTextField(_qualificationCtrl!, 'Chứng chỉ / Chuyên môn', Icons.verified_rounded, maxLines: 2),
             const SizedBox(height: 24),
             const Text(
-              'Chuyen khoa dam nhan',
+              'Chuyên khoa đảm nhận',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
@@ -367,7 +367,7 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
                   elevation: 0,
                 ),
                 child: Text(
-                  _isNew ? 'Luu ho so moi' : 'Cap nhat ho so',
+                  _isNew ? 'Lưu hồ sơ mới' : 'Cập nhật hồ sơ',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
@@ -418,7 +418,7 @@ class _DoctorProfileEditScreenState extends State<DoctorProfileEditScreen> {
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
-            validator: (value) => value == null || value.trim().isEmpty ? 'Vui long nhap thong tin' : null,
+            validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập thông tin' : null,
           ),
         ],
       ),

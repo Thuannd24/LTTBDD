@@ -16,6 +16,7 @@ import 'package:tbdd/core/models/specialty_model.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
 
 import 'package:tbdd/features/user/screens/patient_medical_record_screen.dart';
+import 'package:tbdd/features/user/screens/global_search_screen.dart';
 import 'package:tbdd/features/user/widgets/doctor_card.dart';
 
 class UserHomeScreen extends StatefulWidget {
@@ -133,11 +134,9 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   void _onSearch(String val) {
-     if (val.isEmpty) return;
-     // simple navigation to search results or list
      Navigator.push(
        context,
-       MaterialPageRoute(builder: (context) => DoctorListScreen(searchQuery: val)),
+       MaterialPageRoute(builder: (context) => GlobalSearchScreen(initialQuery: val)),
      );
   }
 
