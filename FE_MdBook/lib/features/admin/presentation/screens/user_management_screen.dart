@@ -126,6 +126,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
+        heroTag: 'user_management_fab',
         onPressed: _showAddUserDialog,
         backgroundColor: const Color(0xFF38A3A5),
         child: const Icon(Icons.add, color: Colors.white),

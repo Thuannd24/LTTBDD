@@ -49,6 +49,10 @@ public class MedicalRecord {
     @Column(columnDefinition = "TEXT")
     String notes;
 
+    // Tóm tắt y tế thông minh (AI)
+    @Column(columnDefinition = "TEXT")
+    String aiSummary;
+
     // Lịch tái khám (nếu có)
     LocalDateTime followUpDate;
 

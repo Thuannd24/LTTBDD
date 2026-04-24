@@ -185,6 +185,45 @@ class _PatientMedicalRecordViewScreenState
             ),
           ),
           const SizedBox(height: 16),
+          // Smart AI Summary
+          if (_hasValue(r['aiSummary']))
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F9F9),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _teal.withOpacity(0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: _teal, size: 20),
+                      SizedBox(width: 10),
+                      Text(
+                        'Tóm tắt y tế thông minh (AI)',
+                        style: TextStyle(
+                            color: _teal,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    r['aiSummary'],
+                    style: const TextStyle(
+                        color: Colors.black87,
+                        height: 1.6,
+                        fontStyle: FontStyle.italic,
+                        fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 16),
           if (_hasValue(r['symptoms']))
             _buildSection(
               icon: Icons.sick_outlined,
