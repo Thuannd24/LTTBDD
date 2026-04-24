@@ -39,7 +39,10 @@ public class AppointmentRequestService {
                 .note(request.getNote())
                 .build();
 
-        return toResponse(appointmentRequestRepository.save(appointmentRequest));
+        AppointmentRequest savedRequest = appointmentRequestRepository.save(appointmentRequest);
+        appointmentService.sendPendingRequestNotificationAsync(patientUserId, request.getDoctorId(), request.getPackageId());
+
+        return toResponse(savedRequest);
     }
 
     @Transactional(readOnly = true)

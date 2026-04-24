@@ -255,4 +255,26 @@ public class AppointmentService {
             }
         });
     }
+
+    public void sendPendingRequestNotificationAsync(String patientUserId, String doctorId, String packageId) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                var examPackage = examPackageService.getPackageById(packageId);
+                var doctorInfo = doctorServiceClient.getDoctorById(doctorId);
+                
+                ApiResponse<InternalUserProfileResponse> response = profileServiceClient.getInternalProfile(patientUserId);
+                if (response.getResult() != null && response.getResult().getFcmToken() != null && !response.getResult().getFcmToken().isBlank()) {
+                    String title = "Gửi yêu cầu thành công!";
+                    String message = String.format(
+                            "Yêu cầu đặt lịch khám với BS. %s (Gói %s) đã được gửi tới phòng khám. Vui lòng chờ bác sĩ xác nhận.",
+                            doctorInfo.name(),
+                            examPackage.getName()
+                    );
+                    notificationService.sendPushNotification(response.getResult().getFcmToken(), title, message);
+                }
+            } catch (Exception e) {
+                log.error("Failed to send pending request notification async", e);
+            }
+        });
+    }
 }
