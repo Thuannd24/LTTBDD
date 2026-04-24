@@ -38,3 +38,7 @@ logging:
     org.hibernate.orm.jdbc.bind: ${LOG_LEVEL_HIBERNATE_BIND:TRACE}
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n"
+
+app:
+  services:
+    profile: ${PROFILE_SERVICE_URL:http://profile-service:5010}
