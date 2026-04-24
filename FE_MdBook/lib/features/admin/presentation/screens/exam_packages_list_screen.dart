@@ -148,6 +148,7 @@ class _ExamPackagesListScreenState extends State<ExamPackagesListScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'exam_packages_fab',
         onPressed: _openCreate,
         backgroundColor: const Color(0xFF38A3A5),
         icon: const Icon(Icons.add, color: Colors.white),

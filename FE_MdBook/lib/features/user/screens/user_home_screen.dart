@@ -49,6 +49,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       backgroundColor: Colors.white,
       body: _pages[_selectedIndex],
       floatingActionButton: _selectedIndex == 0 ? FloatingActionButton(
+        heroTag: 'user_home_fab',
         onPressed: () {
            Navigator.push(
             context,

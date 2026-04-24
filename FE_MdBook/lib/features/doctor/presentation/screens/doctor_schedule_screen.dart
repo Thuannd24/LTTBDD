@@ -312,6 +312,7 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
       floatingActionButton: widget.doctorId == 'doctor_id'
           ? null
           : FloatingActionButton(
+              heroTag: 'doctor_schedule_fab',
               onPressed: _showAddSlotDialog,
               backgroundColor: const Color(0xFF38A3A5),
               child: const Icon(Icons.add, color: Colors.white),

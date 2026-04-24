@@ -30,6 +30,7 @@ public class MedicalRecordService {
     MedicalRecordRepository medicalRecordRepository;
     AppointmentRepository appointmentRepository;
     DoctorServiceClient doctorServiceClient;
+    AIService aiService;
 
     public MedicalRecordResponse createRecord(
             String appointmentId,
@@ -64,6 +65,20 @@ public class MedicalRecordService {
         record.setPrescription(request.getPrescription());
         record.setNotes(request.getNotes());
         record.setFollowUpDate(request.getFollowUpDate());
+
+        // Tự động tạo tóm tắt AI
+        try {
+            String aiSummary = aiService.generateMedicalSummary(
+                record.getSymptoms(), 
+                record.getDiagnosis(), 
+                record.getPrescription(), 
+                record.getNotes()
+            );
+            record.setAiSummary(aiSummary);
+        } catch (Exception e) {
+            log.error("Failed to generate AI summary: {}", e.getMessage());
+            record.setAiSummary("Bác sĩ đã ghi nhận kết quả khám. Bạn vui lòng xem chi tiết chẩn đoán và đơn thuốc bên trên.");
+        }
 
         MedicalRecord saved = medicalRecordRepository.save(record);
         log.info("Medical record saved: {} for appointment: {}", saved.getId(), appointmentId);
@@ -121,6 +136,7 @@ public class MedicalRecordService {
                 .symptoms(r.getSymptoms())
                 .prescription(r.getPrescription())
                 .notes(r.getNotes())
+                .aiSummary(r.getAiSummary())
                 .followUpDate(r.getFollowUpDate())
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())

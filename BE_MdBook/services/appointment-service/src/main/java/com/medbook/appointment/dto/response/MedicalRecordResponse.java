@@ -20,6 +20,7 @@ public class MedicalRecordResponse {
     String symptoms;
     String prescription;
     String notes;
+    String aiSummary;
     LocalDateTime followUpDate;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
