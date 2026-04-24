@@ -4,6 +4,7 @@ import 'package:tbdd/features/auth/data/auth_service.dart';
 import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
 
 import '../../../../core/models/user_model.dart';
+import 'admin_schedule_screen.dart';
 import 'specialties_list_screen.dart';
 import 'user_management_screen.dart';
 import 'package:tbdd/features/chat/data/chat_socket_service.dart';
@@ -86,7 +87,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       index: _selectedIndex,
                       children: [
                         _buildOverviewTab(isMobile),
-                        const Center(child: Text('Lịch khám (Sắp ra mắt)')),
+                        const AdminScheduleScreen(),
                         UserManagementScreen(onUserAdded: _loadStats),
                         const ExamPackagesListScreen(),
                         const SpecialtiesListScreen(),

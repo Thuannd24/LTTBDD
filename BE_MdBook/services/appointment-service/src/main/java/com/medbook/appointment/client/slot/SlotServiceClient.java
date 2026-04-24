@@ -1,11 +1,7 @@
 package com.medbook.appointment.client.slot;
 
-import com.medbook.appointment.client.model.EquipmentInfo;
-import com.medbook.appointment.client.model.RoomInfo;
 import com.medbook.appointment.client.model.SlotInfo;
 import com.medbook.appointment.dto.ApiResponse;
-import com.medbook.appointment.exception.EquipmentNotFoundException;
-import com.medbook.appointment.exception.RoomNotFoundException;
 import com.medbook.appointment.exception.ServiceCommunicationException;
 import com.medbook.appointment.exception.SlotNotFoundException;
 import feign.FeignException;
@@ -35,40 +31,6 @@ public class SlotServiceClient {
                     "AVAILABLE".equalsIgnoreCase(response.status()));
         } catch (FeignException.NotFound ex) {
             throw new SlotNotFoundException("Slot not found: " + slotId);
-        } catch (FeignException ex) {
-            throw new ServiceCommunicationException("Error calling slot-service", ex);
-        }
-    }
-
-    public RoomInfo getRoomById(String roomId) {
-        try {
-            RoomDetailsResponse response = requireResult(
-                    slotServiceFeignClient.getRoom(roomId),
-                    "Room not found: " + roomId);
-            return new RoomInfo(
-                    response.id(),
-                    response.roomName(),
-                    response.roomCategory(),
-                    "ACTIVE".equalsIgnoreCase(response.status()));
-        } catch (FeignException.NotFound ex) {
-            throw new RoomNotFoundException("Room not found: " + roomId);
-        } catch (FeignException ex) {
-            throw new ServiceCommunicationException("Error calling slot-service", ex);
-        }
-    }
-
-    public EquipmentInfo getEquipmentById(String equipmentId) {
-        try {
-            EquipmentDetailsResponse response = requireResult(
-                    slotServiceFeignClient.getEquipment(equipmentId),
-                    "Equipment not found: " + equipmentId);
-            return new EquipmentInfo(
-                    response.id(),
-                    response.equipmentName(),
-                    response.equipmentType(),
-                    "ACTIVE".equalsIgnoreCase(response.status()));
-        } catch (FeignException.NotFound ex) {
-            throw new EquipmentNotFoundException("Equipment not found: " + equipmentId);
         } catch (FeignException ex) {
             throw new ServiceCommunicationException("Error calling slot-service", ex);
         }

@@ -29,13 +29,7 @@ public class AppointmentRequestAdminController {
 
     AppointmentRequestService appointmentRequestService;
 
-    @GetMapping("/pending")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
-    public ApiResponse<Page<AppointmentRequestResponse>> getPendingRequests(Pageable pageable) {
-        return ApiResponse.<Page<AppointmentRequestResponse>>builder()
-                .result(appointmentRequestService.getPendingRequests(pageable))
-                .build();
-    }
+
 
     @PostMapping("/{id}/confirm")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")

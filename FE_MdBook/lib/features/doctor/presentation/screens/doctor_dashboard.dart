@@ -10,8 +10,9 @@ import 'package:tbdd/features/doctor/presentation/screens/doctor_profile_edit_sc
 import 'package:tbdd/features/doctor/presentation/screens/doctor_schedule_screen.dart';
 
 import 'package:tbdd/features/chat/presentation/screens/chat_list_screen.dart';
-import 'package:tbdd/features/chat/data/profile_service.dart';
 import 'package:tbdd/features/chat/data/chat_socket_service.dart';
+import 'package:tbdd/features/chat/data/profile_service.dart';
+import 'package:tbdd/features/doctor/presentation/screens/doctor_appointment_screen.dart';
 
 class DoctorDashboard extends StatefulWidget {
   final UserProfile? user;
@@ -34,6 +35,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   final List<Map<String, dynamic>> _menuItems = [
     {'icon': Icons.dashboard_rounded, 'label': AppStrings.overview},
     {'icon': Icons.calendar_month_rounded, 'label': AppStrings.workingSchedule},
+    {'icon': Icons.event_note_rounded, 'label': 'Lịch hẹn'},
     {'icon': Icons.medical_services_rounded, 'label': AppStrings.professionalProfile},
     {'icon': Icons.person_rounded, 'label': AppStrings.personalInfo},
     {'icon': Icons.chat_rounded, 'label': AppStrings.messages},
@@ -83,7 +85,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   @override
   Widget build(BuildContext context) {
     bool isMobile = MediaQuery.of(context).size.width < 900;
-    String doctorId = _doctorInfo?.userId ?? widget.user?.userId ?? '';
+    String doctorId = _doctorInfo?.id ?? 'doctor_id';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -105,8 +107,9 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                         DoctorScheduleScreen(
                           doctorId: doctorId,
                           isDoctorProfileLoading: _loadingDoctorProfile,
-                          onOpenProfile: () => setState(() => _selectedIndex = 2),
+                          onOpenProfile: () => setState(() => _selectedIndex = 3),
                         ),
+                        DoctorAppointmentScreen(doctorId: doctorId),
                         DoctorProfileEditScreen(
                           userId: widget.user?.userId ?? '',
                           doctorId: _doctorInfo?.id,

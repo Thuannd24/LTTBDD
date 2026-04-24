@@ -53,7 +53,6 @@ public class AppointmentRequest {
 
     Long roomSlotId;
 
-    Long equipmentSlotId;
 
     @Column(nullable = false, length = 30)
     @Enumerated(EnumType.STRING)
@@ -85,7 +84,8 @@ public class AppointmentRequest {
         PENDING_ASSIGNMENT,
         CONFIRMED,
         REJECTED,
-        CANCELLED
+        CANCELLED,
+        COMPLETED
     }
 
     @PrePersist

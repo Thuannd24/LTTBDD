@@ -8,6 +8,7 @@ services:
       - "8761:8761"
     networks:
       - app-network
+    restart: always
 
   gateway:
     build:
@@ -23,6 +24,7 @@ services:
       - SPRING_DATA_REDIS_HOST=${SPRING_DATA_REDIS_HOST:-redis}
     networks:
       - app-network
+    restart: always
 
   redis:
     image: redis:7-alpine
@@ -30,6 +32,7 @@ services:
       - "6379:6379"
     networks:
       - app-network
+    restart: always
 
   mongodb:
     image: mongo:7.0.11
@@ -40,6 +43,7 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-password}
     networks:
       - app-network
+    restart: always
 
   # ─── Business Services ───────────────────────────
   identity-service:
@@ -66,6 +70,7 @@ services:
       - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka}
     networks:
       - app-network
+    restart: always
 
   keycloak:
     image: quay.io/keycloak/keycloak:25.0.0
@@ -87,6 +92,7 @@ services:
       - db-identity
     networks:
       - app-network
+    restart: always
 
   chat-service:
     build: ./services/chat-service
@@ -104,6 +110,7 @@ services:
       - SOCKET_PATH=${SOCKET_PATH:-/chat/socket.io}
     networks:
       - app-network
+    restart: always
 
   # Placeholder services (from starter)
   doctor-service:
@@ -126,6 +133,7 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
     networks:
       - app-network
+    restart: always
 
   appointment-service:
     build:
@@ -144,6 +152,7 @@ services:
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
     networks:
       - app-network
+    restart: always
 
   profile-service:
     build:
@@ -166,6 +175,7 @@ services:
       - APP_OPENAI_API_KEY=${OPENAI_API_KEY:-}
     networks:
       - app-network
+    restart: always
 
   slot-service:
     build:
@@ -187,6 +197,7 @@ services:
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:-http://keycloak:8080/realms/clinic-realm}
     networks:
       - app-network
+    restart: always
 
   # ─── Databases ───────────────────────────────────
   db-identity:
@@ -197,6 +208,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
     networks:
       - app-network
+    restart: always
 
   db-doctor:
     image: postgres:15-alpine
@@ -208,6 +220,7 @@ services:
       - ./scripts/db/init-doctor.sql:/docker-entrypoint-initdb.d/init-doctor.sql
     networks:
       - app-network
+    restart: always
 
   db-appointment:
     image: postgres:15-alpine
@@ -215,8 +228,11 @@ services:
       - POSTGRES_DB=appointment_db
       - POSTGRES_USER=${DB_USER:-admin}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    volumes:
+      - ./scripts/db/init-appointment.sql:/docker-entrypoint-initdb.d/init-appointment.sql
     networks:
       - app-network
+    restart: always
 
   db-profile:
     image: postgres:15-alpine
@@ -226,6 +242,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
     networks:
       - app-network
+    restart: always
 
   db-slot:
     image: postgres:15-alpine
@@ -235,6 +252,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
     networks:
       - app-network
+    restart: always
 
 networks:
   app-network:

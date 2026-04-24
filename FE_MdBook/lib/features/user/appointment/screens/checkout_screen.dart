@@ -85,6 +85,7 @@ class CheckoutScreen extends StatelessWidget {
                       doctorId: doctor.id,
                       packageId: packageData.id,
                       doctorScheduleId: selectedSchedule.id,
+                      roomSlotId: selectedSchedule.roomSlotId,
                       note: reason,
                     );
 

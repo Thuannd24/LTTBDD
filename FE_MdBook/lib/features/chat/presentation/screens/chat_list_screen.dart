@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../data/chat_socket_service.dart';
-import '../../data/profile_service.dart';
-import 'chat_detail_screen.dart';
+import 'package:tbdd/features/chat/data/chat_socket_service.dart';
+import 'package:tbdd/features/chat/data/profile_service.dart';
+import 'package:tbdd/features/chat/presentation/screens/chat_detail_screen.dart';
+import 'package:tbdd/features/chat/data/chat_api_service.dart';
+import 'package:tbdd/features/user/appointment/screens/doctor_list_screen.dart';
+import 'package:tbdd/core/models/doctor_profile_model.dart';
 
 class ChatListScreen extends StatefulWidget {
   final bool isEmbedded;
@@ -15,6 +18,7 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   final ChatSocketService _chatService = ChatSocketService();
+  final ChatApiService _chatApiService = ChatApiService();
   final ProfileService _profileService = ProfileService.instance;
 
   List<_ConversationItem> _items = [];
@@ -291,7 +295,50 @@ class _ChatListScreenState extends State<ChatListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {},
+            onPressed: () async {
+              // Tìm bác sĩ để chat
+              final doctor = await Navigator.push<DoctorProfile>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorListScreen(
+                    selectionMode: true,
+                    specialty: 'Chọn bác sĩ để chat',
+                  ),
+                ),
+              );
+
+              if (doctor != null && mounted) {
+                // Tạo hoặc lấy conversation qua API
+                setState(() => _isLoading = true);
+                final convData = await _chatApiService.createOrGetConversation(doctor.userId);
+                setState(() => _isLoading = false);
+
+                if (convData != null && mounted) {
+                  final convId = convData['id']?.toString() ?? '';
+                  if (convId.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatDetailScreen(
+                          conversationId: convId,
+                          otherUserId: doctor.userId,
+                          otherUserRole: 'DOCTOR',
+                          otherUserName: doctor.fullName,
+                          otherUserImage: doctor.avatar,
+                          currentUserId: _currentUserId ?? '',
+                        ),
+                      ),
+                    ).then((_) => _chatService.getConversations());
+                  }
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Không thể khởi tạo cuộc hội thoại')),
+                    );
+                  }
+                }
+              }
+            },
           ),
         ],
       ),
