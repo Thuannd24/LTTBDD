@@ -134,4 +134,16 @@ public class UserProfileServiceImpl implements UserProfileService {
         
         return userProfileMapper.toUserProfileResponse(userProfileRepository.save(profile));
     }
+
+    @Override
+    @Transactional
+    public void updateFcmToken(String userId, com.medbook.profile.dto.request.UpdateFcmTokenRequest request) {
+        UserProfile profile = userProfileRepository
+                .findByUserId(userId)
+                .orElseGet(() -> UserProfile.builder()
+                        .userId(userId)
+                        .build());
+        profile.setFcmToken(request.getFcmToken());
+        userProfileRepository.save(profile);
+    }
 }

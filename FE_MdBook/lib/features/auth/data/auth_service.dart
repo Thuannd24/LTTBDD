@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/api/api_client.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/utils/jwt_utils.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthService {
   final ApiClient _apiClient = ApiClient();
@@ -37,6 +38,9 @@ class AuthService {
         if (chatUserId != null) {
           await prefs.setString('chat_user_id', chatUserId);
         }
+
+        // Đồng bộ FCM Token lên Server
+        await _syncFcmToken();
         
         return {
           'success': true,
@@ -64,6 +68,24 @@ class AuthService {
         'success': false,
         'message': 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng.'
       };
+    }
+  }
+
+  Future<void> _syncFcmToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        final response = await _apiClient.put('/profile/users/me/fcm-token', {
+          'fcmToken': token
+        });
+        if (response.statusCode == 200) {
+          debugPrint('✅ FCM Token synced successfully');
+        } else {
+          debugPrint('❌ Failed to sync FCM Token: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      debugPrint('🚨 Error syncing FCM Token: $e');
     }
   }
 

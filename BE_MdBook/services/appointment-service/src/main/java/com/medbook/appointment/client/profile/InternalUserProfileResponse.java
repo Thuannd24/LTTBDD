@@ -1,6 +1,10 @@
-package com.medbook.profile.dto.response;
+package com.medbook.appointment.client.profile;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
@@ -9,7 +13,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class InternalUserProfileResponse {
-
     String id;
     String userId;
     String username;

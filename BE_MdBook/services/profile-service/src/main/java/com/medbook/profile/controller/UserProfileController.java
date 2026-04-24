@@ -64,6 +64,13 @@ public class UserProfileController {
                 .build();
     }
 
+    @PutMapping("/me/fcm-token")
+    @Operation(summary = "Update FCM Token for current user")
+    public ApiResponse<Void> updateFcmToken(@Valid @RequestBody com.medbook.profile.dto.request.UpdateFcmTokenRequest request) {
+        userProfileService.updateFcmToken(getCurrentUserId(), request);
+        return ApiResponse.<Void>builder().build();
+    }
+
     @GetMapping("/{userId}")
     @Operation(summary = "Get user profile by userId")
     public ApiResponse<UserProfileResponse> getProfileByUserId(@PathVariable String userId) {

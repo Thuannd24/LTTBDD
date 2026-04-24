@@ -12,6 +12,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
@@ -39,6 +41,9 @@ public class Appointment {
 
     Long roomSlotId;
 
+    LocalDate appointmentDate;
+
+    LocalTime startTime;
 
     @Column(nullable = false, length = 50)
     String facilityId;

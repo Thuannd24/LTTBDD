@@ -3,6 +3,9 @@ package com.medbook.appointment.service;
 import com.medbook.appointment.client.doctor.DoctorServiceClient;
 import com.medbook.appointment.client.model.DoctorInfo;
 import com.medbook.appointment.client.model.DoctorScheduleInfo;
+import com.medbook.appointment.client.profile.ProfileServiceClient;
+import com.medbook.appointment.client.profile.InternalUserProfileResponse;
+import com.medbook.appointment.dto.ApiResponse;
 import com.medbook.appointment.client.slot.SlotServiceClient;
 import com.medbook.appointment.dto.request.CancelAppointmentRequest;
 import com.medbook.appointment.dto.response.AppointmentResponse;
@@ -25,6 +28,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -39,11 +46,19 @@ public class AppointmentService {
     ExamPackageService examPackageService;
     DoctorServiceClient doctorServiceClient;
     SlotServiceClient slotServiceClient;
+    ProfileServiceClient profileServiceClient;
+    NotificationService notificationService;
 
     AppointmentResponse createConfirmedAppointment(CreateAppointmentCommand request, String patientUserId) {
         log.info("Creating appointment for user: {}", patientUserId);
 
         validateCreateRequest(request);
+
+        DoctorScheduleInfo schedule = doctorServiceClient.getDoctorScheduleById(
+                String.valueOf(request.getDoctorScheduleId()), request.getDoctorId());
+
+        LocalDate appointmentDate = LocalDate.parse(schedule.date());
+        LocalTime startTime = LocalTime.parse(schedule.startTime());
 
         Appointment appointment = Appointment.builder()
                 .id(UUID.randomUUID().toString())
@@ -51,6 +66,8 @@ public class AppointmentService {
                 .doctorId(request.getDoctorId())
                 .doctorScheduleId(request.getDoctorScheduleId())
                 .roomSlotId(request.getRoomSlotId())
+                .appointmentDate(appointmentDate)
+                .startTime(startTime)
                 .facilityId(request.getFacilityId() != null ? request.getFacilityId() : "default")
                 .packageId(request.getPackageId())
                 .status(Appointment.AppointmentStatus.CONFIRMED)
@@ -70,6 +87,8 @@ public class AppointmentService {
 
             Appointment saved = appointmentRepository.save(appointment);
             log.info("Appointment confirmed: {}", saved.getId());
+
+            sendBookingNotificationAsync(request, patientUserId, saved);
 
             return appointmentMapper.toResponse(saved);
 
@@ -175,6 +194,10 @@ public class AppointmentService {
             throw new AppointmentValidationException("Doctor is inactive (Status: " + doctor.status() + ")");
         }
 
+        // We already checked doctorScheduleInfo for date extraction, no need to check here again. 
+        // Although the old code checked availability. We should keep it for validation if we don't query it before. 
+        // Wait, validateCreateRequest is called before we query schedule in createConfirmedAppointment. 
+        // I will let validateCreateRequest query it normally, since Feign client responses are cached or fast anyway.
         DoctorScheduleInfo schedule = doctorServiceClient.getDoctorScheduleById(
                 String.valueOf(request.getDoctorScheduleId()), request.getDoctorId());
         if (!schedule.available()) {
@@ -205,5 +228,31 @@ public class AppointmentService {
         } catch (Exception e) {
             log.warn("Rollback failed: {}", e.getMessage());
         }
+    }
+
+    private void sendBookingNotificationAsync(CreateAppointmentCommand request, String patientUserId, Appointment appointment) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                var examPackage = examPackageService.getPackageById(request.getPackageId());
+                var doctorInfo = doctorServiceClient.getDoctorById(request.getDoctorId());
+                
+                ApiResponse<InternalUserProfileResponse> response = profileServiceClient.getInternalProfile(patientUserId);
+                if (response.getResult() != null && response.getResult().getFcmToken() != null && !response.getResult().getFcmToken().isBlank()) {
+                    String title = "Đặt lịch thành công!";
+                    String message = String.format(
+                            "Bạn có lịch hẹn với BS. %s\n" +
+                            "Gói khám: %s\n" +
+                            "Thời gian: %s - %s",
+                            doctorInfo.firstName() + " " + doctorInfo.lastName(),
+                            examPackage.getName(),
+                            appointment.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")),
+                            appointment.getAppointmentDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    );
+                    notificationService.sendPushNotification(response.getResult().getFcmToken(), title, message);
+                }
+            } catch (Exception e) {
+                log.error("Failed to send booking notification async", e);
+            }
+        });
     }
 }

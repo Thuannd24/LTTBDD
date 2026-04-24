@@ -23,4 +23,6 @@ public interface UserProfileService {
     ProfileExistenceResponse checkProfileExists(String userId);
 
     UserProfileResponse generateAiSummary(String userId);
+
+    void updateFcmToken(String userId, com.medbook.profile.dto.request.UpdateFcmTokenRequest request);
 }

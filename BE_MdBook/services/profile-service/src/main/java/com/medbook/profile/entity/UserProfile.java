@@ -54,6 +54,9 @@ public class UserProfile {
     @Column(columnDefinition = "TEXT")
     String aiSummary;
 
+    String fcmToken;
+
+
     @Builder.Default
     Boolean active = true;
 
