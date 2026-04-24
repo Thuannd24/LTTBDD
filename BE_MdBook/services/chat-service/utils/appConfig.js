@@ -73,4 +73,9 @@ module.exports = {
   },
   profileCacheTtlMs: Number(process.env.PROFILE_CACHE_TTL_MS || 300000),
   jwksCacheTtlMs: Number(process.env.JWKS_CACHE_TTL_MS || 3600000),
+  ai: {
+    openAiApiKey: process.env.OPENAI_API_KEY || '',
+    openAiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    doctorServiceUrl: process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:8085',
+  },
 };

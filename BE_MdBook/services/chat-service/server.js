@@ -8,6 +8,7 @@ const config = require('./utils/appConfig');
 const logger = require('./utils/logger');
 const { correlationMiddleware } = require('./utils/correlation');
 const chatRouter = require('./routers/router.chat');
+const aiRouter = require('./routers/router.ai');
 
 require('./database');
 
@@ -43,6 +44,7 @@ app.use(
 );
 
 app.use('/chat', chatRouter);
+app.use('/chat/ai', aiRouter);
 
 app.use((req, res, next) => {
   res.status(404).json({
