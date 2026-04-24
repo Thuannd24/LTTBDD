@@ -14,6 +14,7 @@ import 'package:tbdd/features/doctor/data/doctor_service.dart';
 import 'package:tbdd/core/models/user_model.dart';
 import 'package:tbdd/core/models/specialty_model.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
+import 'package:tbdd/features/user/ai_chat/screens/ai_chat_screen.dart';
 
 import 'package:tbdd/features/user/screens/patient_medical_record_screen.dart';
 import 'package:tbdd/features/user/widgets/doctor_card.dart';
@@ -27,6 +28,7 @@ class UserHomeScreen extends StatefulWidget {
 
 class _UserHomeScreenState extends State<UserHomeScreen> {
   int _selectedIndex = 0;
+  bool _fabExpanded = false;
 
   final List<Widget> _pages = [
     const HomeContent(),
@@ -39,25 +41,139 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      _fabExpanded = false;
     });
+  }
+
+  void _toggleFab() {
+    setState(() => _fabExpanded = !_fabExpanded);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: _pages[_selectedIndex],
-      floatingActionButton: _selectedIndex == 0 ? FloatingActionButton(
-        onPressed: () {
-           Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ChatListScreen()),
-          );
-        },
-        backgroundColor: const Color(0xFF38A3A5),
-        elevation: 4,
-        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-      ) : null,
+      body: Stack(
+        children: [
+          _pages[_selectedIndex],
+          // Overlay để đóng FAB khi bấm ra ngoài
+          if (_fabExpanded)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => setState(() => _fabExpanded = false),
+                child: Container(color: Colors.black.withOpacity(0.25)),
+              ),
+            ),
+        ],
+      ),
+      floatingActionButton: _selectedIndex == 0
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Mini FAB: AI tư vấn
+                AnimatedScale(
+                  scale: _fabExpanded ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: AnimatedOpacity(
+                    opacity: _fabExpanded ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                          ),
+                          child: const Text(
+                            'AI tư vấn triệu chứng',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2D3142)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FloatingActionButton.small(
+                          heroTag: 'fab_ai',
+                          onPressed: () {
+                            setState(() => _fabExpanded = false);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AiChatScreen()),
+                            );
+                          },
+                          backgroundColor: const Color(0xFF22577A),
+                          elevation: 4,
+                          child: const Icon(Icons.psychology_rounded, color: Colors.white, size: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Mini FAB: Chat với bác sĩ
+                AnimatedScale(
+                  scale: _fabExpanded ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  child: AnimatedOpacity(
+                    opacity: _fabExpanded ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 150),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                          ),
+                          child: const Text(
+                            'Chat với bác sĩ',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2D3142)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FloatingActionButton.small(
+                          heroTag: 'fab_chat',
+                          onPressed: () {
+                            setState(() => _fabExpanded = false);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ChatListScreen()),
+                            );
+                          },
+                          backgroundColor: const Color(0xFF38A3A5),
+                          elevation: 4,
+                          child: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Main FAB
+                FloatingActionButton(
+                  heroTag: 'fab_main',
+                  onPressed: _toggleFab,
+                  backgroundColor: const Color(0xFF38A3A5),
+                  elevation: 6,
+                  child: AnimatedRotation(
+                    turns: _fabExpanded ? 0.125 : 0,
+                    duration: const Duration(milliseconds: 250),
+                    child: Icon(
+                      _fabExpanded ? Icons.close_rounded : Icons.add_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : null,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
