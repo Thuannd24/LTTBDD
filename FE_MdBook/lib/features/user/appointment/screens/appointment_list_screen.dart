@@ -8,6 +8,9 @@ import 'package:tbdd/features/user/appointment/data/appointment_service.dart';
 import 'package:tbdd/features/user/appointment/data/exam_package_service.dart';
 import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
 import 'package:tbdd/features/user/appointment/screens/patient_medical_record_view_screen.dart';
+import 'package:tbdd/features/auth/data/auth_service.dart';
+import 'package:tbdd/core/models/user_model.dart';
+import 'package:tbdd/core/utils/notification_manager.dart';
 
 class AppointmentListScreen extends StatefulWidget {
   const AppointmentListScreen({super.key});
@@ -116,6 +119,29 @@ class _AppointmentListScreenState extends State<AppointmentListScreen>
         await _appointmentService.cancelAppointmentRequest(request.id);
       }
       if (!mounted) return;
+      
+      final doc = _doctorById[request.doctorId];
+      String displayDocName = doc?.fullName ?? 'Bác sĩ';
+      if (doc != null) {
+        final profile = await AuthService().getUserInfo(doc.userId);
+        if (profile != null) {
+          displayDocName = '${profile.firstName ?? ""} ${profile.lastName ?? ""}'.trim();
+          if (displayDocName.isEmpty) displayDocName = profile.username;
+        }
+      }
+      
+      NotificationManager.instance.addNotification(
+        title: 'Đã hủy lịch hẹn',
+        body: 'Lịch hẹn với bác sĩ $displayDocName vào ngày ${DateFormat('dd/MM/yyyy').format(request.createdAt ?? DateTime.now())} đã được hủy.',
+        type: 'cancel',
+      );
+      NotificationManager.instance.showPopup(
+        context,
+        title: 'Đã hủy lịch hẹn',
+        body: 'Lịch hẹn với bác sĩ $displayDocName đã được hủy thành công.',
+        type: 'cancel',
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Đã hủy lịch hẹn'), backgroundColor: Colors.orange),
@@ -387,27 +413,39 @@ class _AppointmentListScreenState extends State<AppointmentListScreen>
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              pkg?.name ?? 'Gói khám dịch vụ',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Color(0xFF1E293B)),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Bác sĩ: ${doctor?.fullName ?? "Đang cập nhật"}',
-                              style: TextStyle(
-                                  color: const Color(0xFF64748B),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ],
+                        child: FutureBuilder<UserProfile?>(
+                          future: doctor != null ? AuthService().getUserInfo(doctor.userId) : Future.value(null),
+                          builder: (context, snapshot) {
+                            String name = doctor?.fullName ?? "Đang cập nhật";
+                            if (snapshot.hasData && snapshot.data != null) {
+                              final profile = snapshot.data!;
+                              name = '${profile.firstName ?? ""} ${profile.lastName ?? ""}'.trim();
+                              if (name.isEmpty) name = profile.username;
+                            }
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pkg?.name ?? 'Gói khám dịch vụ',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Color(0xFF1E293B)),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Bác sĩ: $name',
+                                  style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            );
+                          }
                         ),
                       ),
                     ],

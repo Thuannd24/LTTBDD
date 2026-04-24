@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:tbdd/features/auth/presentation/screens/login_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:tbdd/core/utils/notification_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +13,8 @@ void main() async {
     await dotenv.load(fileName: ".env");
     debugPrint("✅ Đã tải file .env thành công!");
     debugPrint("API URL: ${dotenv.env['API_URL']}");
+    // Khởi tạo Notification Manager
+    await NotificationManager.instance.init();
   } catch (e) {
     debugPrint("❌ LỖI TẢI FILE .env: $e");
   }

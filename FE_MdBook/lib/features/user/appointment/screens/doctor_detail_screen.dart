@@ -5,6 +5,8 @@ import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
 import 'package:tbdd/features/chat/data/chat_api_service.dart';
 import 'package:tbdd/features/chat/presentation/screens/chat_detail_screen.dart';
+import 'package:tbdd/features/auth/data/auth_service.dart';
+import 'package:tbdd/core/models/user_model.dart';
 
 class DoctorDetailScreen extends StatelessWidget {
   final DoctorProfile doctor;
@@ -144,14 +146,29 @@ class DoctorDetailScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            doctor.fullName,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${doctor.degree ?? "Bác sĩ"} • ${doctor.position ?? "Chuyên gia y tế"}',
-            style: const TextStyle(color: Color(0xFF38A3A5), fontWeight: FontWeight.w600, fontSize: 14),
+          FutureBuilder<UserProfile?>(
+            future: AuthService().getUserInfo(doctor.userId),
+            builder: (context, snapshot) {
+              String name = doctor.fullName;
+              if (snapshot.hasData && snapshot.data != null) {
+                final p = snapshot.data!;
+                name = '${p.firstName ?? ""} ${p.lastName ?? ""}'.trim();
+                if (name.isEmpty) name = p.username;
+              }
+              return Column(
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${doctor.degree ?? "Bác sĩ"} • ${doctor.position ?? "Chuyên gia y tế"}',
+                    style: const TextStyle(color: Color(0xFF38A3A5), fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                ],
+              );
+            }
           ),
           const SizedBox(height: 24),
           Row(

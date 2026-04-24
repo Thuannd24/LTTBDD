@@ -20,11 +20,22 @@ class AiSuggestion {
     final specialtyJson = json['specialty'] as Map<String, dynamic>? ?? {};
     final doctorsJson = json['doctors'] as List<dynamic>? ?? [];
 
+    final suggestedSpecialty = Specialty.fromJson(specialtyJson);
+    final allDoctors = doctorsJson
+        .map((d) => DoctorProfile.fromJson(d as Map<String, dynamic>))
+        .toList();
+
+    // Lọc bác sĩ để chỉ hiện những người thuộc đúng chuyên khoa gợi ý
+    List<DoctorProfile> filteredDoctors = [];
+    if (suggestedSpecialty.id.isNotEmpty) {
+      filteredDoctors = allDoctors.where((doc) {
+        return doc.specialtyIds.contains(suggestedSpecialty.id);
+      }).toList();
+    }
+
     return AiSuggestion(
-      specialty: Specialty.fromJson(specialtyJson),
-      doctors: doctorsJson
-          .map((d) => DoctorProfile.fromJson(d as Map<String, dynamic>))
-          .toList(),
+      specialty: suggestedSpecialty,
+      doctors: filteredDoctors,
       reasoning: json['reasoning'] as String? ?? '',
       aiMessage: json['aiMessage'] as String? ?? '',
       urgency: json['urgency'] as String? ?? 'medium',

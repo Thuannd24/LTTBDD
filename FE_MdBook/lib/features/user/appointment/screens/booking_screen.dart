@@ -184,6 +184,7 @@ class _BookingScreenState extends State<BookingScreen> {
         _selectedSchedule = null;
         _schedules = [];
       });
+      _hydrateSelectedDoctor();
       _loadSchedules();
     }
   }

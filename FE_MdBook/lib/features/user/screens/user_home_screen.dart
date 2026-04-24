@@ -19,6 +19,8 @@ import 'package:tbdd/features/user/ai_chat/screens/ai_chat_screen.dart';
 import 'package:tbdd/features/user/screens/patient_medical_record_screen.dart';
 import 'package:tbdd/features/user/screens/global_search_screen.dart';
 import 'package:tbdd/features/user/widgets/doctor_card.dart';
+import 'package:tbdd/features/user/screens/notification_screen.dart';
+import 'package:tbdd/core/utils/notification_manager.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -31,13 +33,19 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   int _selectedIndex = 0;
   bool _fabExpanded = false;
 
-  final List<Widget> _pages = [
-    const HomeContent(),
-    const PatientMedicalRecordScreen(),
-    const AppointmentListScreen(),
-    const Center(child: Text('Thông báo')),
-    const ProfileScreen(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeContent(onNotify: () => _onItemTapped(3)),
+      const PatientMedicalRecordScreen(),
+      const AppointmentListScreen(),
+      const NotificationScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -191,11 +199,39 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           unselectedFontSize: 11,
           showUnselectedLabels: true,
           elevation: 0,
-          items: const [
+          items: [
             BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Trang chủ'),
             BottomNavigationBarItem(icon: Icon(Icons.assignment_ind_outlined), label: 'Hồ sơ'),
             BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Đặt lịch'),
-            BottomNavigationBarItem(icon: Icon(Icons.notifications_none), label: 'Thông báo'),
+            BottomNavigationBarItem(
+              icon: ValueListenableBuilder<int>(
+                valueListenable: NotificationManager.instance.unreadCount,
+                builder: (context, count, _) {
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.notifications_none),
+                      if (count > 0)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            child: Text(
+                              count > 9 ? '9+' : '$count',
+                              style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              label: 'Thông báo',
+            ),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Tài khoản'),
           ],
         ),
@@ -205,7 +241,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 }
 
 class HomeContent extends StatefulWidget {
-  const HomeContent({super.key});
+  final VoidCallback onNotify;
+  const HomeContent({super.key, required this.onNotify});
 
   @override
   State<HomeContent> createState() => _HomeContentState();
@@ -308,7 +345,7 @@ class _HomeContentState extends State<HomeContent> {
             decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
             child: IconButton(
               icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF38A3A5)),
-              onPressed: () {},
+              onPressed: widget.onNotify,
             ),
           ),
         ],

@@ -4,6 +4,8 @@ import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'package:tbdd/features/user/ai_chat/data/ai_chat_service.dart';
 import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
 import 'package:tbdd/features/user/appointment/screens/doctor_detail_screen.dart';
+import 'package:tbdd/features/auth/data/auth_service.dart';
+import 'package:tbdd/core/models/user_model.dart';
 
 // ─── Data models cho chat ─────────────────────────────────────────────────────
 
@@ -623,7 +625,7 @@ class _SuggestionCard extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                height: 175,
+                height: 210,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.only(left: 16, right: 8),
@@ -665,105 +667,131 @@ class _DoctorMiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8F4F4)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF38A3A5).withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: const Color(0xFF38A3A5).withOpacity(0.1),
-            backgroundImage: doctor.avatar != null && doctor.avatar!.isNotEmpty
-                ? NetworkImage(doctor.avatar!)
-                : null,
-            child: doctor.avatar == null || doctor.avatar!.isEmpty
-                ? const Icon(Icons.person_rounded, color: Color(0xFF38A3A5), size: 28)
-                : null,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            doctor.fullName,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2D3142),
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            '${doctor.experienceYears} năm KN',
-            style: const TextStyle(fontSize: 10, color: Colors.grey),
-          ),
-          const SizedBox(height: 8),
-          // Nút Đặt lịch
-          GestureDetector(
-            onTap: onBook,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF38A3A5), Color(0xFF22577A)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(8),
+    return FutureBuilder<UserProfile?>(
+      future: AuthService().getUserInfo(doctor.userId),
+      builder: (context, snapshot) {
+        String name = doctor.fullName;
+        String? avatarUrl = doctor.avatar;
+
+        if (snapshot.hasData && snapshot.data != null) {
+          final profile = snapshot.data!;
+          name = '${profile.firstName ?? ""} ${profile.lastName ?? ""}'.trim();
+          if (name.isEmpty) name = profile.username;
+          avatarUrl = profile.avatar;
+        }
+
+        return Container(
+          width: 140,
+          margin: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE8F4F4)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF38A3A5).withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              child: const Text(
-                '📅 Đặt lịch',
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: const Color(0xFF38A3A5).withOpacity(0.1),
+                backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                    ? NetworkImage(avatarUrl)
+                    : null,
+                child: (avatarUrl == null || avatarUrl.isEmpty)
+                    ? const Icon(Icons.person_rounded, color: Color(0xFF38A3A5), size: 28)
+                    : null,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                name,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D3142),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 5),
-          // Nút Xem chi tiết
-          GestureDetector(
-            onTap: onTap,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF38A3A5).withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: const Color(0xFF38A3A5).withOpacity(0.25),
-                ),
-              ),
-              child: const Text(
-                'Xem chi tiết',
+              Text(
+                doctor.position ?? 'Chuyên khoa',
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 10,
-                  color: Color(0xFF38A3A5),
-                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF38A3A5).withOpacity(0.8),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ),
+              const SizedBox(height: 2),
+              Text(
+                '${doctor.experienceYears} năm kinh nghiệm',
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              // Nút Đặt lịch
+              GestureDetector(
+                onTap: onBook,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF38A3A5), Color(0xFF22577A)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '📅 Đặt lịch',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 5),
+              // Nút Xem chi tiết
+              GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF38A3A5).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFF38A3A5).withOpacity(0.25),
+                    ),
+                  ),
+                  child: const Text(
+                    'Xem chi tiết',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF38A3A5),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

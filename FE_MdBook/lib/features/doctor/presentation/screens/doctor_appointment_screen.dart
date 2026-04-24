@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:tbdd/core/models/appointment_request_model.dart';
 import 'package:tbdd/features/user/appointment/data/appointment_service.dart';
-
+import 'package:tbdd/core/utils/notification_manager.dart';
 import 'package:tbdd/features/chat/data/profile_service.dart';
 import 'package:tbdd/core/models/doctor_schedule_model.dart';
 import 'package:tbdd/features/doctor/data/doctor_schedule_service.dart';
@@ -127,6 +127,20 @@ class _DoctorAppointmentScreenState extends State<DoctorAppointmentScreen>
     try {
       await _service.confirmAppointmentRequest(requestId);
       if (!mounted) return;
+      
+      final patientName = _patientMap[_pending.firstWhere((p) => p.id == requestId).patientUserId]?.displayName ?? 'Bệnh nhân';
+      NotificationManager.instance.addNotification(
+        title: 'Đã xác nhận lịch hẹn',
+        body: 'Bạn đã xác nhận lịch hẹn với bệnh nhân $patientName.',
+        type: 'confirm',
+      );
+      NotificationManager.instance.showPopup(
+        context,
+        title: 'Đã xác nhận',
+        body: 'Đã xác nhận lịch hẹn với $patientName.',
+        type: 'confirm',
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('✅ Đã xác nhận lịch hẹn'),
@@ -173,6 +187,20 @@ class _DoctorAppointmentScreenState extends State<DoctorAppointmentScreen>
     try {
       await _service.rejectAppointmentRequest(requestId, reason);
       if (!mounted) return;
+      
+      final patientName = _patientMap[_pending.firstWhere((p) => p.id == requestId).patientUserId]?.displayName ?? 'Bệnh nhân';
+      NotificationManager.instance.addNotification(
+        title: 'Đã từ chối lịch hẹn',
+        body: 'Bạn đã từ chối lịch hẹn với bệnh nhân $patientName.',
+        type: 'cancel',
+      );
+      NotificationManager.instance.showPopup(
+        context,
+        title: 'Đã từ chối',
+        body: 'Đã từ chối lịch hẹn với $patientName.',
+        type: 'cancel',
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Đã từ chối yêu cầu'),

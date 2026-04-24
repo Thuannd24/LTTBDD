@@ -39,7 +39,7 @@ class DoctorProfile {
 
   factory DoctorProfile.fromJson(Map<String, dynamic> json) {
     return DoctorProfile(
-      id: json['id'] ?? '',
+      id: json['id'] ?? json['_id'] ?? '',
       userId: json['userId'] ?? '',
       specialtyIds: json['specialtyIds'] != null ? List<String>.from(json['specialtyIds']) : <String>[],
       experienceYears: json['experienceYears'] ?? 0,

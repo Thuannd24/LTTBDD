@@ -6,6 +6,8 @@ import 'package:tbdd/core/models/exam_package_model.dart';
 import 'package:tbdd/core/models/user_model.dart';
 import 'package:tbdd/features/user/appointment/data/appointment_service.dart';
 import 'package:tbdd/features/user/appointment/screens/booking_success_screen.dart';
+import 'package:tbdd/core/utils/notification_manager.dart';
+import 'package:tbdd/features/auth/data/auth_service.dart';
 
 class CheckoutScreen extends StatelessWidget {
   final UserProfile? patient;
@@ -59,7 +61,18 @@ class CheckoutScreen extends StatelessWidget {
                   _buildInfoRow('Lý do khám', (reason?.trim().isNotEmpty ?? false) ? reason!.trim() : 'Khám định kỳ'),
                   const Divider(thickness: 1, color: Color(0xFFF5F5F5)),
                   _buildSectionHeader(Icons.medical_information_outlined, 'Bác sĩ'),
-                  _buildInfoRow('Bác sĩ', doctor.fullName),
+                  FutureBuilder<UserProfile?>(
+                    future: AuthService().getUserInfo(doctor.userId),
+                    builder: (context, snapshot) {
+                      String name = doctor.fullName;
+                      if (snapshot.hasData && snapshot.data != null) {
+                        final p = snapshot.data!;
+                        name = '${p.firstName ?? ""} ${p.lastName ?? ""}'.trim();
+                        if (name.isEmpty) name = p.username;
+                      }
+                      return _buildInfoRow('Bác sĩ', name);
+                    },
+                  ),
                   _buildInfoRow('Thời gian', start),
                   _buildInfoRow('Trạng thái lịch', selectedSchedule.status),
                 ],
@@ -90,6 +103,27 @@ class CheckoutScreen extends StatelessWidget {
                     );
 
                     if (context.mounted) {
+                      // Lấy tên thật để thông báo
+                      final profile = await AuthService().getUserInfo(doctor.userId);
+                      String displayDocName = doctor.fullName;
+                      if (profile != null) {
+                        displayDocName = '${profile.firstName ?? ""} ${profile.lastName ?? ""}'.trim();
+                        if (displayDocName.isEmpty) displayDocName = profile.username;
+                      }
+
+                      // Thêm thông báo và hiển thị popup
+                      NotificationManager.instance.addNotification(
+                        title: 'Đặt lịch thành công',
+                        body: 'Yêu cầu đặt lịch với bác sĩ $displayDocName đã được gửi.',
+                        type: 'booking',
+                      );
+                      NotificationManager.instance.showPopup(
+                        context,
+                        title: 'Đặt lịch thành công',
+                        body: 'Yêu cầu đặt lịch với bác sĩ $displayDocName đã được gửi.',
+                        type: 'booking',
+                      );
+
                       Navigator.pop(context);
                       Navigator.pushReplacement(
                         context,

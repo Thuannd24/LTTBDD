@@ -71,10 +71,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Color(0xFFE0F2F1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.family_restroom,
-                    size: 100,
-                    color: Color(0xFF38A3A5),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.family_restroom,
+                          size: 100,
+                          color: Color(0xFF38A3A5),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
