@@ -51,7 +51,7 @@ public class AppointmentReminderJob {
                     String title = "Nhắc nhở lịch khám";
                     String message = String.format(
                             "Bạn có lịch hẹn khám với BS. %s vào ngày mai lúc %s. Vui lòng đến đúng giờ!",
-                            doctorInfo.firstName() + " " + doctorInfo.lastName(),
+                            doctorInfo.name(),
                             app.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm"))
                     );
                     notificationService.sendPushNotification(response.getResult().getFcmToken(), title, message);

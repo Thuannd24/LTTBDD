@@ -243,7 +243,7 @@ public class AppointmentService {
                             "Bạn có lịch hẹn với BS. %s\n" +
                             "Gói khám: %s\n" +
                             "Thời gian: %s - %s",
-                            doctorInfo.firstName() + " " + doctorInfo.lastName(),
+                            doctorInfo.name(),
                             examPackage.getName(),
                             appointment.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")),
                             appointment.getAppointmentDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
