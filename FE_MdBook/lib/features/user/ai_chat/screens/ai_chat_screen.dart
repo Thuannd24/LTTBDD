@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tbdd/core/models/ai_suggestion_model.dart';
 import 'package:tbdd/core/models/doctor_profile_model.dart';
 import 'package:tbdd/features/user/ai_chat/data/ai_chat_service.dart';
+import 'package:tbdd/features/user/appointment/screens/booking_screen.dart';
 import 'package:tbdd/features/user/appointment/screens/doctor_detail_screen.dart';
 
 // ─── Data models cho chat ─────────────────────────────────────────────────────
@@ -215,6 +216,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => DoctorDetailScreen(doctor: doctor)),
+                );
+              },
+              onBookTap: (doctor) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => BookingScreen(initialDoctor: doctor)),
                 );
               },
             );
@@ -477,8 +484,13 @@ class _UserBubble extends StatelessWidget {
 class _SuggestionCard extends StatelessWidget {
   final AiSuggestion suggestion;
   final void Function(DoctorProfile) onDoctorTap;
+  final void Function(DoctorProfile) onBookTap;
 
-  const _SuggestionCard({required this.suggestion, required this.onDoctorTap});
+  const _SuggestionCard({
+    required this.suggestion,
+    required this.onDoctorTap,
+    required this.onBookTap,
+  });
 
   Color get _urgencyColor {
     switch (suggestion.urgency) {
@@ -611,7 +623,7 @@ class _SuggestionCard extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                height: 140,
+                height: 175,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.only(left: 16, right: 8),
@@ -619,6 +631,7 @@ class _SuggestionCard extends StatelessWidget {
                   itemBuilder: (_, i) => _DoctorMiniCard(
                     doctor: suggestion.doctors[i],
                     onTap: () => onDoctorTap(suggestion.doctors[i]),
+                    onBook: () => onBookTap(suggestion.doctors[i]),
                   ),
                 ),
               ),
@@ -642,62 +655,114 @@ class _SuggestionCard extends StatelessWidget {
 class _DoctorMiniCard extends StatelessWidget {
   final DoctorProfile doctor;
   final VoidCallback onTap;
+  final VoidCallback onBook;
 
-  const _DoctorMiniCard({required this.doctor, required this.onTap});
+  const _DoctorMiniCard({
+    required this.doctor,
+    required this.onTap,
+    required this.onBook,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 120,
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFB),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[100]!),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: const Color(0xFF38A3A5).withOpacity(0.1),
-              backgroundImage: doctor.avatar != null && doctor.avatar!.isNotEmpty
-                  ? NetworkImage(doctor.avatar!)
-                  : null,
-              child: doctor.avatar == null || doctor.avatar!.isEmpty
-                  ? const Icon(Icons.person_rounded, color: Color(0xFF38A3A5), size: 28)
-                  : null,
+    return Container(
+      width: 140,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8F4F4)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF38A3A5).withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: const Color(0xFF38A3A5).withOpacity(0.1),
+            backgroundImage: doctor.avatar != null && doctor.avatar!.isNotEmpty
+                ? NetworkImage(doctor.avatar!)
+                : null,
+            child: doctor.avatar == null || doctor.avatar!.isEmpty
+                ? const Icon(Icons.person_rounded, color: Color(0xFF38A3A5), size: 28)
+                : null,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            doctor.fullName,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2D3142),
             ),
-            const SizedBox(height: 8),
-            Text(
-              doctor.fullName,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2D3142)),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${doctor.experienceYears} năm KN',
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${doctor.experienceYears} năm KN',
+            style: const TextStyle(fontSize: 10, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          // Nút Đặt lịch
+          GestureDetector(
+            onTap: onBook,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFF38A3A5).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF38A3A5), Color(0xFF22577A)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '📅 Đặt lịch',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 5),
+          // Nút Xem chi tiết
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF38A3A5).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFF38A3A5).withOpacity(0.25),
+                ),
               ),
               child: const Text(
                 'Xem chi tiết',
-                style: TextStyle(fontSize: 10, color: Color(0xFF38A3A5), fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF38A3A5),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
