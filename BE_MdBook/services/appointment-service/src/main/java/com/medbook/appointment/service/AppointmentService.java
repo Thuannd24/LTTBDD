@@ -120,6 +120,8 @@ public class AppointmentService {
             appointmentRequestRepository.save(req);
         });
 
+        sendGenericNotificationAsync(patientUserId, "Hủy lịch thành công", "Lịch khám đã xác nhận của bạn đã được hủy thành công trên hệ thống.");
+
         return appointmentMapper.toResponse(appointmentRepository.save(appointment));
     }
 
@@ -274,6 +276,19 @@ public class AppointmentService {
                 }
             } catch (Exception e) {
                 log.error("Failed to send pending request notification async", e);
+            }
+        });
+    }
+
+    public void sendGenericNotificationAsync(String patientUserId, String title, String messageContent) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                ApiResponse<InternalUserProfileResponse> response = profileServiceClient.getInternalProfile(patientUserId);
+                if (response.getResult() != null && response.getResult().getFcmToken() != null && !response.getResult().getFcmToken().isBlank()) {
+                    notificationService.sendPushNotification(response.getResult().getFcmToken(), title, messageContent);
+                }
+            } catch (Exception e) {
+                log.error("Failed to send generic notification async", e);
             }
         });
     }

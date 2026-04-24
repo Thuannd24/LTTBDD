@@ -105,6 +105,12 @@ public class AppointmentRequestService {
         appointmentRequest.setProcessedAt(LocalDateTime.now());
         appointmentRequest.setRejectionReason(request.getReason());
 
+        String message = "Rất tiếc! Yêu cầu đặt lịch của bạn đã bị bác sĩ từ chối.";
+        if (request.getReason() != null && !request.getReason().isBlank()) {
+            message += " Lý do: " + request.getReason();
+        }
+        appointmentService.sendGenericNotificationAsync(appointmentRequest.getPatientUserId(), "Từ chối lịch hẹn", message);
+
         return toResponse(appointmentRequestRepository.save(appointmentRequest));
     }
 
@@ -121,6 +127,8 @@ public class AppointmentRequestService {
 
         appointmentRequest.setStatus(AppointmentRequest.RequestStatus.CANCELLED);
         appointmentRequest.setProcessedAt(LocalDateTime.now());
+
+        appointmentService.sendGenericNotificationAsync(appointmentRequest.getPatientUserId(), "Hủy yêu cầu thành công", "Bạn đã hủy yêu cầu đặt lịch trước đó.");
 
         return toResponse(appointmentRequestRepository.save(appointmentRequest));
     }
